@@ -28,6 +28,7 @@
 
 #include "generated-conf.h"
 
+#include <stdio.h>
 #include <stdint.h>
 
 #ifndef __LIBE15_DBG_H__
@@ -183,7 +184,7 @@ extern "C"
 #endif //! #if defined(CONFIG_LOG_LEVEL_FATAL)
 
 
-#define print(level, ...) dbg_print_##level(level, DBG_TRANSLATE_LOCATION(__FILE__, __LINE__), __FUNCTION__, __VA_ARGS__)
+#define print(level, ...) dbg_print_L##level(level, DBG_TRANSLATE_LOCATION(__FILE__, __LINE__), __FUNCTION__, __VA_ARGS__)
 
 
 #elif defined(CONFIG_USE_CUSTOM_LOG_PRINT)
