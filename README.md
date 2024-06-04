@@ -1,6 +1,6 @@
 # lib15
 
-![ci status](https://github.com/Simakeng/libe15/actions/workflows/c-cpp.yml/badge.svg)
+![ci status](https://github.com/E15-Studio/libe15/actions/workflows/c-cpp.yml/badge.svg)
 
 C/C++ Code library mainly designed to implement useful functionalities in code-size sensitive embedded systems such as STM32.
 

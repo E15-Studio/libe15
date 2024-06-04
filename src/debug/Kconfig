@@ -1,0 +1,84 @@
+
+choice
+    prompt "Choose Log Option"
+
+    config USE_LIBE15_LOG_PRINT
+        bool "Use libe15 log print function"
+
+    config USE_CUSTOM_LOG_PRINT
+        bool "Use custom log print function"
+    
+    config NO_LOG_PRINT
+        bool "No log print"
+
+    help
+        Choose the log print function you want to use.
+endchoice
+
+config ENABLE_LOG_LEVEL
+    bool "Enable Log Level"
+    depends on USE_LIBE15_LOG_PRINT
+    default y
+    help
+        Enable the log level when use log print.
+
+choice 
+    prompt "Choose Log display level"
+    depends on USE_LIBE15_LOG_PRINT
+
+    config LOG_LEVEL_DEBUG
+        bool "Debug"
+
+    config LOG_LEVEL_INFO
+        bool "Info"
+
+    config LOG_LEVEL_WARN
+        bool "Warn"
+
+    config LOG_LEVEL_ERROR
+        bool "Error"
+
+    config LOG_LEVEL_FATAL
+        bool "Fatal"
+    
+    config LOG_LEVEL_NONE
+        bool "None"
+
+    help
+        Choose the log level you want to enable.
+endchoice
+
+config DEBUG_COLOR
+    bool "Use colored log output"
+    default y
+    depends on USE_LIBE15_LOG_PRINT
+    help 
+        What some colors?
+
+config OMIT_LOCATION
+    bool "Don't print function filename and line number."
+    default n
+    depends on USE_LIBE15_LOG_PRINT
+    help
+        Don't print the function filename and line number when log print.
+
+config OMIT_FUNCTION_NAME
+    bool "Show function name when print."
+    default y
+    depends on USE_LIBE15_LOG_PRINT && !OMIT_LOCATION
+    help 
+        Say n if you want to show the function name when print.
+
+config LOCATION_FULLNAME 
+    bool "Print full function filename."
+    default n
+    depends on USE_LIBE15_LOG_PRINT && !OMIT_LOCATION
+    help
+        Print the full function filename when log print.
+
+config OMIT_LEVEL
+    bool "Don't show log level string."
+    default n
+    depends on USE_LIBE15_LOG_PRINT
+    help
+        Say y if you dont want to see a level in the output.

@@ -4,29 +4,40 @@
  * @brief Debugging functions
  * @version 0.1
  * @date 2023-04-10
- *
- * @copyright Copyright (c) 2023
- *
+ * *****************************************************************************
+ * @copyright Copyright (C) E15 Studio 2024
+ * 
+ * This program is FREE software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License version 3 as published by the 
+ * Free Software Foundation.
+ * This program is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 675 Mass Ave, Cambridge, MA 02139, USA. Or you can visit the link below to 
+ * read the license online, or you can find a copy of the license in the root 
+ * directory of this project named "COPYING" file.
+ * 
+ * https://www.gnu.org/licenses/gpl-3.0.html
+ * 
+ * *****************************************************************************
+ * 
  */
+
+#include "generated-conf.h"
 
 #include <stdint.h>
 
+#ifndef __LIBE15_DBG_H__
+#define __LIBE15_DBG_H__
 
-// If you want to disable all the debug messages,
-// uncomment the line below this will save you some ROM space
-// #define CONFIG_OMIT_MESSAGE 1
+/**************************************
+ * Color defs
+ **************************************/
 
-// If you dont want to print the location of the function call
-// uncomment the line below
-// #define CONFIG_OMIT_LOCATION 1
-
-// uncomment this if you want to print the full path of the file
-// #define CONFIG_LOCATION_FULLNAME
-
-// if you dont want to print the function name
-// uncomment the line below
-// #define CONFIG_OMIT_FUNCTION_NAME 1
-
+#ifdef CONFIG_DEBUG_COLOR
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_RED "\033[31m"
@@ -44,28 +55,19 @@
 #define COLOR_TEAL "\033[96m"
 #define COLOR_WHITE "\033[97m"
 
-// if you want to print the message with color
-// uncomment the line below
-#define CONFIG_DEBUG_COLOR 1
+#endif //! #ifdef CONFIG_DEBUG_COLOR
 
-// if you dont want to print the message level
-// uncomment the line below
-// #define CONFIG_OMIT_LEVEL 1
+/**************************************
+ * Debug levels
+ **************************************/
 
-#define LDEBUG 0
-#define LINFO 1
-#define LWARN 2
-#define LERROR 3
-#define LFATAL 4
+#define DEBUG 0
+#define INFO 1
+#define WARN 2
+#define ERROR 3
+#define FATAL 4
 
-// if you want to surpress certain level of message
-// uncomment the line below and set the level
-// only message with level higher than the level set will be printed
-#define CONFIG_PRINT_LEVEL -1
-
-
-#ifndef __LIBE15_DBG_H__
-#define __LIBE15_DBG_H__
+#if defined(CONFIG_USE_LIBE15_LOG_PRINT)
 
 #ifdef __cplusplus
 extern "C"
@@ -115,59 +117,82 @@ extern "C"
 
 #define DBG_TRANSLATE_LOCATION(file, line) file ":" DBG_TRANSLATE_LINE(line)
 
-#if defined(CONFIG_OMIT_LEVEL)
 
-#endif // ! #if defined(CONFIG_OMIT_LEVEL)
+/************************************
+ * calculate levels
+ ************************************/
+#if !defined(CONFIG_LOG_LEVEL_INFO) && defined(CONFIG_LOG_LEVEL_DEBUG)
+#define CONFIG_LOG_LEVEL_INFO
+#endif
+
+#if !defined(CONFIG_LOG_LEVEL_WARN) && defined(CONFIG_LOG_LEVEL_INFO)
+#define CONFIG_LOG_LEVEL_WARN
+#endif
+
+#if !defined(CONFIG_LOG_LEVEL_ERROR) && defined(CONFIG_LOG_LEVEL_WARN)
+#define CONFIG_LOG_LEVEL_ERROR
+#endif
+
+#if !defined(CONFIG_LOG_LEVEL_FATAL) && defined(CONFIG_LOG_LEVEL_ERROR)
+#define CONFIG_LOG_LEVEL_FATAL
+#endif
 
 /************************************
  * @brief Debug level debug message
  ************************************/
-#if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LDEBUG)
-#define dbg_print_LDEBUG(level, location, function, msg, ...) ((void)0)
-#else
+#if defined(CONFIG_LOG_LEVEL_DEBUG)
 #define dbg_print_LDEBUG(level, location, function, msg, ...) dbg_print(level, location, function, msg, ##__VA_ARGS__)
-#endif // #if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LDEBUG)
+#else
+#define dbg_print_LDEBUG(level, location, function, msg, ...) ((void)0)
+#endif //! #if defined(CONFIG_LOG_LEVEL_DEBUG)
 
 /************************************
  * @brief Info level debug message
  ************************************/
-#if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LINFO)
-#define dbg_print_LINFO(level, location, function, msg, ...) ((void)0)
-#else
+#if defined(CONFIG_LOG_LEVEL_INFO)
 #define dbg_print_LINFO(level, location, function, msg, ...) dbg_print(level, location, function, msg, ##__VA_ARGS__)
-#endif // #if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LINFO)
+#else
+#define dbg_print_LINFO(level, location, function, msg, ...) ((void)0)
+#endif //! #if defined(CONFIG_LOG_LEVEL_INFO)
 
 /************************************
  * @brief Info level debug message
  ************************************/
-#if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LWARN)
-#define dbg_print_LWARN(level, location, function, msg, ...) ((void)0)
-#else
+#if defined(CONFIG_LOG_LEVEL_WARN)
 #define dbg_print_LWARN(level, location, function, msg, ...) dbg_print(level, location, function, msg, ##__VA_ARGS__)
-#endif // #if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LWARN)
+#else
+#define dbg_print_LWARN(level, location, function, msg, ...) ((void)0)
+#endif //! #if defined(CONFIG_LOG_LEVEL_WARN)
 
 /************************************
  * @brief Info level debug message
  ************************************/
-#if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LERROR)
-#define dbg_print_LERROR(level, location, function, msg, ...) ((void)0)
-#else
+#if defined(CONFIG_LOG_LEVEL_ERROR)
 #define dbg_print_LERROR(level, location, function, msg, ...) dbg_print(level, location, function, msg, ##__VA_ARGS__)
-#endif // #if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LERROR)
+#else
+#define dbg_print_LERROR(level, location, function, msg, ...) ((void)0)
+#endif //! #if defined(CONFIG_LOG_LEVEL_ERROR)
 
 /************************************
  * @brief Fatal level debug message
  ************************************/
-#if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LFATAL)
-#define dbg_print_LFATAL(level, location, function, msg, ...) ((void)0)
-#else
+#if defined(CONFIG_LOG_LEVEL_FATAL)
 #define dbg_print_LFATAL(level, location, function, msg, ...) dbg_print(level, location, function, msg, ##__VA_ARGS__)
-#endif // #if defined(CONFIG_OMIT_LEVEL) && (CONFIG_OMIT_LEVEL >= LFATAL)
-
-#ifdef CONFIG_OMIT_MESSAGE
-#define print(level, ...) ((void)0)
 #else
+#define dbg_print_LFATAL(level, location, function, msg, ...) ((void)0)
+#endif //! #if defined(CONFIG_LOG_LEVEL_FATAL)
+
+
 #define print(level, ...) dbg_print_##level(level, DBG_TRANSLATE_LOCATION(__FILE__, __LINE__), __FUNCTION__, __VA_ARGS__)
+
+
+#elif defined(CONFIG_USE_CUSTOM_LOG_PRINT)
+
+#error Please insert your #include and func here and comment out this error.
+// #define print(level, ...) your_function_to_print(level, __VA_ARGS__)
+
+#else
+#define print(level, ...) ((void)0)
 #endif
 
 #endif // ! #ifndef __LIBE15_DBG_H__

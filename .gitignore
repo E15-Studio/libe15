@@ -1,7 +1,6 @@
 # ignore all file
-*.*
 *
-.*
+
 # allow source file
 !*/
 !*.mk
@@ -13,4 +12,5 @@
 !*.gitignore
 !README.md
 !Makefile
+!Kconfig
 !dependencies.d

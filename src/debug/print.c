@@ -1,22 +1,45 @@
 /**
  * @file libe15-dbg.c
  * @author Simakeng (simakeng@outlook.com)
- * @brief Debugging functions
+ * @brief Debugging functions.
  * @version 0.1
  * @date 2023-04-10
- *
- * @copyright Copyright (c) 2023
- *
+ * *****************************************************************************
+ * @copyright Copyright (C) E15 Studio 2024
+ * 
+ * This program is FREE software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License version 3 as published by the 
+ * Free Software Foundation.
+ * This program is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 675 Mass Ave, Cambridge, MA 02139, USA. Or you can visit the link below to 
+ * read the license online, or you can find a copy of the license in the root 
+ * directory of this project named "COPYING" file.
+ * 
+ * https://www.gnu.org/licenses/gpl-3.0.html
+ * 
+ * *****************************************************************************
+ * 
  */
+
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include "libe15-dbg.h"
+
+#include "print.h"
+
+#ifdef CONFIG_USE_LIBE15_LOG_PRINT
 
 #ifndef unused
 #define unused(X) ((void)X)
 #endif // !#ifndef unused
+
+
 static int32_t dbg_default_dev_puts(const char *s);
 static int32_t dbg_default_dev_putc(int ch);
 
@@ -89,15 +112,15 @@ const char *translate_level(int32_t level)
 {
     switch (level)
     {
-    case LDEBUG:
+    case DEBUG:
         return "DEBUG";
-    case LINFO:
+    case INFO:
         return "INFO ";
-    case LWARN:
+    case WARN:
         return "WARN ";
-    case LERROR:
+    case ERROR:
         return "ERROR";
-    case LFATAL:
+    case FATAL:
         return "FATAL";
     default:
         return "UNKNO";
@@ -188,16 +211,16 @@ void dbg_print(int32_t level, const char *location, const char *function, const 
 #ifdef CONFIG_DEBUG_COLOR
         switch (level)
         {
-        case LERROR:
+        case ERROR:
             dbg_dev_puts(COLOR_MAGENTA);
             break;
-        case LFATAL:
+        case FATAL:
             dbg_dev_puts(COLOR_RED);
             break;
-        case LWARN:
+        case WARN:
             dbg_dev_puts(COLOR_YELLOW);
             break;
-        case LINFO:
+        case INFO:
             dbg_dev_puts(COLOR_BEIGE);
             break;
         default:
@@ -345,3 +368,5 @@ void dbg_print(int32_t level, const char *location, const char *function, const 
 
     va_end(args);
 }
+
+#endif // !#ifdef CONFIG_USE_LIBE15_LOG_PRINT

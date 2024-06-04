@@ -1,17 +1,32 @@
 /**
- * @file libe15-errors.h
+ * @file error_codes.h
  * @author Simakeng (simakeng@outlook.com)
  * @brief Error codes for libe15
  * @version 0.1
  * @date 2023-04-10
- *
- * @copyright Copyright (c) 2023
- *
+ * *****************************************************************************
+ * @copyright Copyright (C) E15 Studio 2024
+ * 
+ * This program is FREE software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License version 3 as published by the 
+ * Free Software Foundation.
+ * This program is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 675 Mass Ave, Cambridge, MA 02139, USA. Or you can visit the link below to 
+ * read the license online, or you can find a copy of the license in the root 
+ * directory of this project named "COPYING" file.
+ * 
+ * https://www.gnu.org/licenses/gpl-3.0.html
+ * 
+ * *****************************************************************************
  */
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <libe15-dbg.h>
 
 #ifndef ERROR_TYPE
 typedef int32_t error_t;
