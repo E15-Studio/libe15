@@ -6,15 +6,32 @@
  * @date 2023-06-14
  *
  * @copyright Copyright (c) 2023
- *
+ *******************************************************************************
+ * @copyright Copyright (C) E15 Studio 2024
+ * 
+ * This program is FREE software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License version 3 as published by the 
+ * Free Software Foundation.
+ * This program is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 675 Mass Ave, Cambridge, MA 02139, USA. Or you can visit the link below to 
+ * read the license online, or you can find a copy of the license in the root 
+ * directory of this project named "COPYING" file.
+ * 
+ * https://www.gnu.org/licenses/gpl-3.0.html
+ * 
+ * *****************************************************************************
+ * 
  */
 
-#include <libe15-errors.h>
+#include <error_codes.h>
 
 #ifndef __LIBE15_DEVOP_H__
 #define __LIBE15_DEVOP_H__
-
-#include <stm32f407xx.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -65,7 +82,7 @@ extern "C"
         error_t err = (func)(__VA_ARGS__);                                       \
         if (FAILED(err))                                                         \
         {                                                                        \
-            print(LERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
+            print(ERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
             return err;                                                          \
         }                                                                        \
     } while (0u)
@@ -85,7 +102,7 @@ extern "C"
         hr = (func)(__VA_ARGS__);                                                \
         if (FAILED(hr))                                                          \
         {                                                                        \
-            print(LERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
+            print(ERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
             goto lab;                                                            \
         }                                                                        \
     } while (0u)
@@ -107,7 +124,7 @@ extern "C"
             error_t err = (func)(__VA_ARGS__);                                       \
             if (FAILED(err))                                                         \
             {                                                                        \
-                print(LERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
+                print(ERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
                 return err;                                                          \
             }                                                                        \
         }                                                                            \
@@ -130,7 +147,7 @@ extern "C"
             hr = (func)(__VA_ARGS__);                                                \
             if (FAILED(err))                                                         \
             {                                                                        \
-                print(LERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
+                print(ERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
                 goto lab;                                                            \
             }                                                                        \
         }                                                                            \
@@ -143,7 +160,7 @@ extern "C"
     {                                                                                 \
         if (!(param condition))                                                       \
         {                                                                             \
-            print(LERROR, "'" #param "' not meeting requirement '" #condition "'\n"); \
+            print(ERROR, "'" #param "' not meeting requirement '" #condition "'\n"); \
             return E_INVALID_ARGUMENT;                                                \
         }                                                                             \
     } while (0U)
@@ -154,7 +171,7 @@ extern "C"
     {                                                        \
         if (param == NULL)                                   \
         {                                                    \
-            print(LERROR, "'" #param "' cannot be NULL.\n"); \
+            print(ERROR, "'" #param "' cannot be NULL.\n"); \
             return E_INVALID_ARGUMENT;                       \
         }                                                    \
     } while (0U)

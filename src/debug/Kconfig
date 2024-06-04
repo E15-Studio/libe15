@@ -1,3 +1,4 @@
+menu "Debugging Options" 
 
 choice
     prompt "Choose Log Option"
@@ -82,3 +83,5 @@ config OMIT_LEVEL
     depends on USE_LIBE15_LOG_PRINT
     help
         Say y if you dont want to see a level in the output.
+
+endmenu

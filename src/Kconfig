@@ -1,5 +1,4 @@
-menu "Debugging Options" 
 
 source "./src/debug/Kconfig"
 
-endmenu
+source "./src/hardware/Kconfig"

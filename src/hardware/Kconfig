@@ -1,0 +1,6 @@
+menu "Hardware drivers"
+
+source "src/hardware/oled/Kconfig"
+
+endmenu
+

@@ -1,17 +1,37 @@
 /**
  * @file ssd1306.c
  * @author simakeng (simakeng@outlook.com)
- * @brief
+ * @brief OLED display driver for SSD1306
  * @version 0.1
  * @date 2023-06-13
- *
- * @copyright Copyright (c) 2023
- *
+ * *****************************************************************************
+ * @copyright Copyright (C) E15 Studio 2024
+ * 
+ * This program is FREE software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License version 3 as published by the 
+ * Free Software Foundation.
+ * This program is distributed in the hope that it will be useful, but WITHOUT 
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 675 Mass Ave, Cambridge, MA 02139, USA. Or you can visit the link below to 
+ * read the license online, or you can find a copy of the license in the root 
+ * directory of this project named "COPYING" file.
+ * 
+ * https://www.gnu.org/licenses/gpl-3.0.html
+ * 
+ * *****************************************************************************
+ * 
  */
+
 #include <stddef.h>
-#include <libe15-hw/devop.h>
+#include <hardware/devop.h>
 
 #include "ssd1306.h"
+
+#ifdef CONFIG_OLED_SSD1306
 
 static error_t SSD1306_write_command_sequence(SSD1306_Device_t *device, const void *cmd_seq, uint32_t size)
 {
@@ -57,12 +77,12 @@ error_t SSD1306_Init(SSD1306_Device_t *device, SSD1306_Init_t *init)
     uint8_t seg_mapping = 0;
     uint8_t com_scan_dir = 0;
 
-    if (init->flags & SSD1306_INIT_FLAG_LR_SWAP)
+    if (init->lr_flip)
         seg_mapping = 0xA0;
     else
         seg_mapping = 0xA1;
 
-    if (init->flags & SSD1306_INIT_FLAG_UD_SWAP)
+    if (init->ud_flip)
         com_scan_dir = 0xC0;
     else
         com_scan_dir = 0xC8;
@@ -129,3 +149,5 @@ error_t SSD1306_display_off(SSD1306_Device_t *device)
         device, cmd_seq,
         sizeof(cmd_seq));
 }
+
+#endif // !#ifdef CONFIG_OLED_SSD1306

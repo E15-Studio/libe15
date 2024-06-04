@@ -25,6 +25,8 @@
  * *****************************************************************************
  */
 
+#include "generated-conf.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -63,6 +65,10 @@ typedef int32_t error_t;
 #define E_MEMORY_BUFFER_INUSE           -(70005)
 
 #define E_MEMORY_OUT_OF_BOUND           -(70100)
+
+#include <debug/print.h>
+
+#define error(...) print(ERROR, __VA_ARGS__)
 
 /*********************************************************************
  * @brief check if an argument is valid, print an error message
