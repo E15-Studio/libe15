@@ -14,26 +14,58 @@
 #include <stdarg.h>
 #include "libe15-dbg.h"
 
-weak int32_t dev_putc(int ch)
+#ifndef unused
+#define unused(X) ((void)X)
+#endif // !#ifndef unused
+static int32_t dbg_default_dev_puts(const char *s);
+static int32_t dbg_default_dev_putc(int ch);
+
+static volatile dbg_low_level_io_ops_t dbg_dev_ops = {
+    .putc = dbg_default_dev_putc,
+    .puts = dbg_default_dev_puts};
+
+static volatile int32_t last_char = 0x00;
+
+void dbg_print_init(dbg_low_level_io_ops_t *ops)
+{
+    dbg_dev_ops.putc = dbg_default_dev_putc;
+    dbg_dev_ops.puts = dbg_default_dev_puts;
+
+    if (ops == NULL)
+        return;
+
+    if (ops->putc != NULL)
+        dbg_dev_ops.putc = ops->putc;
+
+    if (ops->puts != NULL)
+        dbg_dev_ops.puts = ops->puts;
+
+    return;
+}
+
+static int32_t dbg_default_dev_putc(int ch)
 {
     return EOF;
 }
 
-static volatile int32_t last_char = 0x00;
-
-int32_t putc_warper(int ch)
+static int32_t dbg_default_dev_puts(const char *s)
 {
-    last_char = ch;
-    return dev_putc(ch);
+    return EOF;
 }
 
-weak int32_t dev_puts(const char *s)
+int32_t dbg_putc_warper(int ch)
+{
+    last_char = ch;
+    return dbg_dev_ops.putc(ch);
+}
+
+int32_t dbg_dev_puts(const char *s)
 {
     int32_t i = 0;
     int32_t cnt = 0;
     while (*s != 0)
     {
-        i = putc_warper(*s);
+        i = dbg_putc_warper(*s);
         if (i == EOF)
             return EOF;
         s++;
@@ -42,11 +74,14 @@ weak int32_t dev_puts(const char *s)
     return cnt;
 }
 
-int32_t puts_warper(const char *s)
+int32_t dbg_puts_warper(const char *s)
 {
-    int32_t cnt = dev_puts(s);
-    if (cnt != EOF)
-        last_char = *(s + cnt - 1);
+    const char *ch = s;
+
+    while (*ch != 0)
+        last_char = *ch++;
+
+    int32_t cnt = dbg_dev_ops.puts(s);
     return cnt;
 }
 
@@ -58,7 +93,7 @@ const char *translate_level(int32_t level)
         return "DEBUG";
     case LINFO:
         return "INFO ";
-    case LWARNING:
+    case LWARN:
         return "WARN ";
     case LERROR:
         return "ERROR";
@@ -119,6 +154,7 @@ int is_specifier_attr(int ch)
         return 0;
     }
 }
+
 int get_fmt_string(const char *start, const char **end_out)
 {
     while (*start != 0)
@@ -142,29 +178,68 @@ void dbg_print(int32_t level, const char *location, const char *function, const 
     va_list args;
     va_start(args, msg);
 
-    UNUSED(location);
-    UNUSED(function);
-    UNUSED(level);
+    unused(location);
+    unused(function);
+    unused(level);
 
     if (last_char == '\n' || last_char == '\0')
     {
 
+#ifdef CONFIG_DEBUG_COLOR
+        switch (level)
+        {
+        case LERROR:
+            dbg_dev_puts(COLOR_MAGENTA);
+            break;
+        case LFATAL:
+            dbg_dev_puts(COLOR_RED);
+            break;
+        case LWARN:
+            dbg_dev_puts(COLOR_YELLOW);
+            break;
+        case LINFO:
+            dbg_dev_puts(COLOR_BEIGE);
+            break;
+        default:
+            dbg_dev_puts(COLOR_RESET);
+            break;
+        }
+#endif
+
 #ifndef CONFIG_OMIT_LEVEL
-        dev_puts("[");
-        dev_puts(translate_level(level));
-        dev_puts("] ");
+        dbg_dev_puts("[");
+        dbg_dev_puts(translate_level(level));
+        dbg_dev_puts("] ");
 #endif
 
 #ifndef CONFIG_OMIT_LOCATION
-        dev_puts("[");
-        dev_puts(location);
-        dev_puts("] ");
+        dbg_dev_puts("[");
+#ifdef CONFIG_LOCATION_FULLNAME
+        dbg_dev_puts(location);
+#else
+        {
+            const char *last_spliter_nix = strrchr(location, '/');
+            const char *last_spliter_win = strrchr(location, '\\');
+            const char *last_spliter;
+            if (last_spliter_nix > last_spliter_win)
+                last_spliter = last_spliter_nix;
+            else
+                last_spliter = last_spliter_win;
+            if (last_spliter == NULL)
+                last_spliter = location;
+            else
+                last_spliter += 1;
+            dbg_dev_puts(last_spliter);
+        }
+#endif
+
+        dbg_dev_puts("] ");
 #endif
 
 #ifndef CONFIG_OMIT_FUNCTION_NAME
-        dev_puts("[");
-        dev_puts(function);
-        dev_puts("] ");
+        dbg_dev_puts("[");
+        dbg_dev_puts(function);
+        dbg_dev_puts("] ");
 #endif
     }
 
@@ -239,14 +314,14 @@ void dbg_print(int32_t level, const char *location, const char *function, const 
                     buf[2] = 0;
                     break;
                 }
-                dev_puts(output);
+                dbg_dev_puts(output);
                 ch = ch_end;
                 continue;
             }
             else
             {
             not_a_valid_fmt:
-                putc_warper(*ch);
+                dbg_putc_warper(*ch);
             }
         }
         // The intention is to add a '\r' character before the '\n' character.
@@ -259,11 +334,11 @@ void dbg_print(int32_t level, const char *location, const char *function, const 
             // condition is false, then we can safely access the previous
             // character.
             if (ch == msg || *(ch - 1) != '\r')
-                putc_warper('\r');
-            putc_warper(*ch);
+                dbg_putc_warper('\r');
+            dbg_putc_warper(*ch);
         }
         else
-            putc_warper(*ch);
+            dbg_putc_warper(*ch);
 
         ++ch;
     }

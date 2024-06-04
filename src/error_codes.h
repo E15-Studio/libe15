@@ -10,7 +10,7 @@
  */
 
 #include <stdint.h>
-
+#include <stdlib.h>
 #include <libe15-dbg.h>
 
 #ifndef ERROR_TYPE
@@ -20,9 +20,15 @@ typedef int32_t error_t;
 
 #define ALL_OK 0
 
+/** the dev is too lazy to implement this part.
+ * if you see this error, bombard the dev with
+ * emails would be a good idea.
+ */
+#define E_NOT_IMPLEMENTED               -(10001)
 
 #define E_INVALID_ARGUMENT              -(90001)
 #define E_INVALID_ADDRESS               -(90002)
+#define E_INVALID_OPERATION             -(90003)
 
 
 #define E_HARDWARE_ERROR                -(60001)
@@ -36,6 +42,10 @@ typedef int32_t error_t;
 
 
 #define E_MEMORY_ERROR                  -(70001)
+
+#define E_MEMORY_ALLOC_FAILED           -(70002)
+
+#define E_MEMORY_BUFFER_INUSE           -(70005)
 
 #define E_MEMORY_OUT_OF_BOUND           -(70100)
 

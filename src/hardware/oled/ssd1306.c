@@ -9,7 +9,7 @@
  *
  */
 #include <stddef.h>
-#include <libe15-devop.h>
+#include <libe15-hw/devop.h>
 
 #include "ssd1306.h"
 

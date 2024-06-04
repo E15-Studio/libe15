@@ -1,7 +1,5 @@
 #include "libe15-pid.h"
 
-
-
 void pid_init_controller(fixed_t kp, fixed_t ki, fixed_t kd, pid_state_t *pstate)
 {
     pstate->kp = kp;
