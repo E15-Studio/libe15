@@ -66,23 +66,4 @@ typedef int32_t error_t;
 
 #define E_MEMORY_OUT_OF_BOUND           -(70100)
 
-#include <debug/print.h>
-
-#define error(...) print(ERROR, __VA_ARGS__)
-
-/*********************************************************************
- * @brief check if an argument is valid, print an error message
- * if not
- */
-#define ARGUMENT_CHECK(expr)                                        \
-    do                                                              \
-    {                                                               \
-        if ((expr) == ((void *)0))                                  \
-        {                                                           \
-            error("invalid argument: '" #expr "' can't be null!");  \
-            return E_INVALID_ARGUMENT;                              \
-        }                                                           \
-    } while (0u)
-
-
 #define FAILED(res) ((res) != ALL_OK)

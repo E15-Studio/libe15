@@ -1,5 +1,11 @@
 menu "Hardware drivers"
 
+config USE_DEVOP_ERROR_PRINT
+    bool "Enable error print for all device driver"
+    default y
+    help
+      Enable error print for device operation.
+
 source "src/hardware/oled/Kconfig"
 
 endmenu

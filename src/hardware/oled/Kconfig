@@ -1,17 +1,10 @@
 menu "OLED Drivers"
 
 config OLED_SSD1306
-    bool "SSD1306 OLED Driver"
+    bool "SSD1306/SSD1315 OLED Driver"
     default n
     help
-      This is a driver for the SSD1306 OLED display controller.
-      It can be used with OLED displays that use the SSD1306 controller.
-
-config OLED_SSD1315
-    bool "SSD1315 OLED Driver"
-    default n
-    help
-      This is a driver for the SSD1315 OLED display controller.
-      It can be used with OLED displays that use the SSD1315 controller.
+      Say y if you want a driver for the SSD1306 and SSD1315 OLED display
+      controller.
 
 endmenu

@@ -8,52 +8,58 @@
  * @copyright Copyright (c) 2023
  *******************************************************************************
  * @copyright Copyright (C) E15 Studio 2024
- * 
+ *
  * This program is FREE software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License version 3 as published by the 
+ * the terms of the GNU General Public License version 3 as published by the
  * Free Software Foundation.
- * This program is distributed in the hope that it will be useful, but WITHOUT 
+ * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
  * details.
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc.,
- * 675 Mass Ave, Cambridge, MA 02139, USA. Or you can visit the link below to 
- * read the license online, or you can find a copy of the license in the root 
+ * 675 Mass Ave, Cambridge, MA 02139, USA. Or you can visit the link below to
+ * read the license online, or you can find a copy of the license in the root
  * directory of this project named "COPYING" file.
- * 
+ *
  * https://www.gnu.org/licenses/gpl-3.0.html
- * 
+ *
  * *****************************************************************************
- * 
+ *
  */
 
+/******************************************************************************/
+/*                               INCLUDE FILES                                */
+/******************************************************************************/
+
 #include <error_codes.h>
+#include <debug/print.h>
+
+/******************************************************************************/
+/*                              MACRO DEFINITIONS                             */
+/******************************************************************************/
 
 #ifndef __LIBE15_DEVOP_H__
 #define __LIBE15_DEVOP_H__
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif // ! #ifdef __cplusplus
-    
-    #ifndef __CALLBACK_TYPE_DEF__
-    #define __CALLBACK_TYPE_DEF__
-    /**
-     * @brief callback function type
-     */
-    typedef void (*callback_t)(void);
+#ifndef __CALLBACK_TYPE_DEF__
+#define __CALLBACK_TYPE_DEF__
+/**
+ * @brief callback function type
+ */
+typedef void (*callback_t)(void);
 
-    /**
-     * @brief callback function type with arguments
-     */
-    typedef void (*callback_arg_t)(void *parg);
-    #endif // ! #ifdef __CALLBACK_TYPE_DEF__
+/**
+ * @brief callback function type with arguments
+ */
+typedef void (*callback_arg_t)(void *parg);
+#endif // ! #ifdef __CALLBACK_TYPE_DEF__
 
-#ifdef __cplusplus
-}
-#endif // ! #ifdef __cplusplus
+#ifdef CONFIG_USE_DEVOP_ERROR_PRINT
+#define dev_err(...) print(ERROR, __VA_ARGS__)
+#else
+#define dev_err(...) void(0)
+#endif // ! #ifdef CONFIG_USE_DEVOP_ERROR_PRINT
 
 #ifndef CALL_NULLABLE
 /**
@@ -76,15 +82,17 @@ extern "C"
  * the function **must not** be null, but we don't check it.
  * if the function returns an error, the error will be logged and returned.
  */
-#define CALL_WITH_ERROR(func, ...)                                               \
-    do                                                                           \
-    {                                                                            \
-        error_t err = (func)(__VA_ARGS__);                                       \
-        if (FAILED(err))                                                         \
-        {                                                                        \
-            print(ERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
-            return err;                                                          \
-        }                                                                        \
+#define CALL_WITH_ERROR(func, ...)                         \
+    do                                                     \
+    {                                                      \
+        error_t err = (func)(__VA_ARGS__);                 \
+        if (FAILED(err))                                   \
+        {                                                  \
+            dev_err("'" #func "()' "                   \
+                        "failed with error code 0x%08X\n", \
+                        err);                              \
+            return err;                                    \
+        }                                                  \
     } while (0u)
 #endif // ! CALL_WITH_ERROR
 
@@ -96,15 +104,17 @@ extern "C"
  * and the error code will be set to the given symbol, then
  * goto the given label.
  */
-#define CALL_WITH_ERROR_EXIT(hr, lab, func, ...)                                 \
-    do                                                                           \
-    {                                                                            \
-        hr = (func)(__VA_ARGS__);                                                \
-        if (FAILED(hr))                                                          \
-        {                                                                        \
-            print(ERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
-            goto lab;                                                            \
-        }                                                                        \
+#define CALL_WITH_ERROR_EXIT(hr, lab, func, ...)           \
+    do                                                     \
+    {                                                      \
+        hr = (func)(__VA_ARGS__);                          \
+        if (FAILED(hr))                                    \
+        {                                                  \
+            dev_err("'" #func "()' "                   \
+                        "failed with error code 0x%08X\n", \
+                        err);                              \
+            goto lab;                                      \
+        }                                                  \
     } while (0u)
 #endif // ! CALL_WITH_ERROR_EXIT
 
@@ -114,20 +124,22 @@ extern "C"
  * the function can be null, in which case it will be ignored.
  * if the function returns an error, the error will be logged and returned.
  */
-#define CALL_NULLABLE_WITH_ERROR(func, ...)                                          \
-    do                                                                               \
-    {                                                                                \
-        if ((func) == ((void *)0))                                                   \
-            break;                                                                   \
-        else                                                                         \
-        {                                                                            \
-            error_t err = (func)(__VA_ARGS__);                                       \
-            if (FAILED(err))                                                         \
-            {                                                                        \
-                print(ERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
-                return err;                                                          \
-            }                                                                        \
-        }                                                                            \
+#define CALL_NULLABLE_WITH_ERROR(func, ...)                    \
+    do                                                         \
+    {                                                          \
+        if ((func) == ((void *)0))                             \
+            break;                                             \
+        else                                                   \
+        {                                                      \
+            error_t err = (func)(__VA_ARGS__);                 \
+            if (FAILED(err))                                   \
+            {                                                  \
+                dev_err("'" #func "()' "                   \
+                            "failed with error code 0x%08X\n", \
+                            err);                              \
+                return err;                                    \
+            }                                                  \
+        }                                                      \
     } while (0u)
 #endif // ! CALL_NULLABLE_WITH_ERROR
 
@@ -137,43 +149,60 @@ extern "C"
  * the function can be null, in which case it will be ignored.
  * if the function returns an error, the error will be logged and returned.
  */
-#define CALL_NULLABLE_WITH_ERROR_EXIT(hr, lab, func, ...)                            \
-    do                                                                               \
-    {                                                                                \
-        if ((func) == ((void *)0))                                                   \
-            break;                                                                   \
-        else                                                                         \
-        {                                                                            \
-            hr = (func)(__VA_ARGS__);                                                \
-            if (FAILED(err))                                                         \
-            {                                                                        \
-                print(ERROR, "'" #func "()' failed with error code 0x%08X\n", err); \
-                goto lab;                                                            \
-            }                                                                        \
-        }                                                                            \
+#define CALL_NULLABLE_WITH_ERROR_EXIT(hr, lab, func, ...)      \
+    do                                                         \
+    {                                                          \
+        if ((func) == ((void *)0))                             \
+            break;                                             \
+        else                                                   \
+        {                                                      \
+            hr = (func)(__VA_ARGS__);                          \
+            if (FAILED(err))                                   \
+            {                                                  \
+                dev_err("'" #func "()' "                   \
+                            "failed with error code 0x%08X\n", \
+                            err);                              \
+                goto lab;                                      \
+            }                                                  \
+        }                                                      \
     } while (0u)
 #endif // ! CALL_NULLABLE_WITH_ERROR_EXIT
 
 #ifndef PARAM_CHECK
-#define PARAM_CHECK(param, condition)                                                 \
-    do                                                                                \
-    {                                                                                 \
-        if (!(param condition))                                                       \
-        {                                                                             \
-            print(ERROR, "'" #param "' not meeting requirement '" #condition "'\n"); \
-            return E_INVALID_ARGUMENT;                                                \
-        }                                                                             \
+#define PARAM_CHECK(param, condition)                                  \
+    do                                                                 \
+    {                                                                  \
+        if (!(param condition))                                        \
+        {                                                              \
+            dev_err("'" #param "' "                                \
+                        "not meeting requirement '" #condition "'\n"); \
+            return E_INVALID_ARGUMENT;                                 \
+        }                                                              \
     } while (0U)
 #endif // ! PARAM_CHECK
+
+#ifndef PARAM_CHECK_CODE
+#define PARAM_CHECK_CODE(param, condition, code)                       \
+    do                                                                 \
+    {                                                                  \
+        if (!(param condition))                                        \
+        {                                                              \
+            dev_err("'" #param "' "                                \
+                        "not meeting requirement '" #condition "'\n"); \
+            return code;                                               \
+        }                                                              \
+    } while (0U)
+#endif // ! PARAM_CHECK_CODE
+
 #ifndef PARAM_NOT_NULL
-#define PARAM_NOT_NULL(param)                                \
-    do                                                       \
-    {                                                        \
-        if (param == NULL)                                   \
-        {                                                    \
-            print(ERROR, "'" #param "' cannot be NULL.\n"); \
-            return E_INVALID_ARGUMENT;                       \
-        }                                                    \
+#define PARAM_NOT_NULL(param)                              \
+    do                                                     \
+    {                                                      \
+        if (param == NULL)                                 \
+        {                                                  \
+            dev_err("'" #param "' cannot be NULL.\n"); \
+            return E_INVALID_ARGUMENT;                     \
+        }                                                  \
     } while (0U)
 
 #endif // ! PARAM_NOT_NULL
