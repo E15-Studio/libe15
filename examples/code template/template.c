@@ -19,7 +19,7 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 675 Mass Ave, Cambridge, MA 02139, USA. Or you can visit the link below to
  * read the license online, or you can find a copy of the license in the root
- * directory of this project named "COPYING" file.
+ * directory of this project named "LICENSE" file.
  *
  * https://www.gnu.org/licenses/gpl-3.0.html
  *
