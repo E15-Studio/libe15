@@ -184,7 +184,7 @@ error_t ssd1306_display_off(ssd1306_device_t *device)
 error_t ssd1306_set_offset_by_addr(ssd1306_device_t *device, uint32_t off)
 {
     PARAM_NOT_NULL(device);
-    PARAM_CHECK_CODE(off, < SSD1306_GRAM_LINE_WIDTH, E_MEMORY_OUT_OF_BOUND);
+    PARAM_CHECK_CODE(off, < SSD1306_GRAM_SIZE, E_MEMORY_OUT_OF_BOUND);
 
     uint32_t col_off = off % SSD1306_GRAM_LINE_WIDTH;
     uint32_t row_off = off / SSD1306_GRAM_LINE_WIDTH;
