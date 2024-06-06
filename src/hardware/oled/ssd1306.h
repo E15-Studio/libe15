@@ -188,12 +188,12 @@ extern "C"
      * @param off_row row offset, should be [0,7]
      * @return error_t
      */
-    error_t SSD1306_set_offset(ssd1306_device_t *device,
+    error_t ssd1306_set_offset(ssd1306_device_t *device,
                                uint32_t off_col, uint32_t off_row);
 
     /**
      * @brief append data to gram and automatically increase the offset
-     * @see SSD1306_set_offset
+     * @see ssd1306_set_offset
      * @param device
      * @param w_data
      * @param w_size

@@ -42,8 +42,9 @@
 /******************************************************************************/
 /*                              MACRO DEFINITIONS                             */
 /******************************************************************************/
-#define SSD1306_GRAM_LINE_WIDTH 128
 #define SSD1306_GRAM_SIZE 1024
+#define SSD1306_GRAM_LINE_WIDTH 128
+#define SSD1306_GRAM_LINE_COUNT 8
 /******************************************************************************/
 /*                              TYPE DEFINITIONS                              */
 /******************************************************************************/
@@ -67,6 +68,10 @@
 static error_t write_command_sequence(ssd1306_device_t *device,
                                       const void *cmd_seq,
                                       uint32_t size);
+
+static error_t write_data(ssd1306_device_t *device,
+                          const void *data,
+                          uint32_t size);
 
 /******************************************************************************/
 /*                      PUBLIC FUNCTION IMPLEMENTATIONS                       */
@@ -135,12 +140,14 @@ error_t ssd1306_init(ssd1306_device_t *device, ssd1306_Init_t *init)
         0x12,         //
         0xDB,         //--  set vcomh
         0x40,         //--  Set VCOM Deselect Level
-        0x20,         //--  Set Horizontal Addressing Mode (0x00/0x01/0x02)
-        0x00,         //
-        0x8D,         //--  set Charge Pump enable/disable
-        0x14,         //--  set(0x10) disable
-        0xA4,         //--  Disable Entire Display On (0xa4/0xa5)
-        0xA6,         //--  Disable Inverse Display On (0xa6/a7)
+
+        0x20, //--  Set Page Addressing Mode (0x00/0x01/0x02)
+        0x02, //
+
+        0x8D, //--  set Charge Pump enable/disable
+        0x10, //--  set(0x10) disable
+        0xA4, //--  Disable Entire Display On (0xa4/0xa5)
+        0xA6, //--  Disable Inverse Display On (0xa6/a7)
     };
 
     return write_command_sequence(
@@ -182,10 +189,11 @@ error_t ssd1306_set_offset_by_addr(ssd1306_device_t *device, uint32_t off)
     uint32_t col_off = off % SSD1306_GRAM_LINE_WIDTH;
     uint32_t row_off = off / SSD1306_GRAM_LINE_WIDTH;
 
-    return SSD1306_set_offset(device, col_off, row_off);
+    return ssd1306_set_offset(device, col_off, row_off);
 }
 
-error_t SSD1306_set_offset(ssd1306_device_t *device, uint32_t col_off, uint32_t row_off)
+error_t ssd1306_set_offset(ssd1306_device_t *device,
+                           uint32_t col_off, uint32_t row_off)
 {
     // argument sanity check
     PARAM_NOT_NULL(device);
@@ -216,40 +224,6 @@ error_t SSD1306_set_offset(ssd1306_device_t *device, uint32_t col_off, uint32_t 
     return ALL_OK;
 }
 
-/******************************************************************************/
-/*                     PRIVATE FUNCTION IMPLEMENTATIONS                       */
-/******************************************************************************/
-
-static error_t write_command_sequence(ssd1306_device_t *device,
-                                      const void *cmd_seq,
-                                      uint32_t size)
-{
-    // aquire the spi bus
-    CALL_NULLABLE_WITH_ERROR(device->device_op.spi_aquire);
-
-    // init gpio state
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 0);
-
-    // send commands byte by byte
-    for (int i = 0; i < size; i++)
-    {
-        uint8_t cmd = ((uint8_t *)cmd_seq)[i];
-        CALL_WITH_ERROR(device->device_op.gpio_cs_set, 0);
-        CALL_WITH_ERROR(device->device_op.spi_write, &cmd, 1);
-        CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    }
-
-    // reset gpio state
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
-
-    // release the spi bus
-    CALL_NULLABLE_WITH_ERROR(device->device_op.spi_release);
-    
-    return ALL_OK;
-}
-
 error_t ssd1306_append_gram(ssd1306_device_t *device,
                             const void *w_data, uint32_t w_size)
 {
@@ -265,24 +239,39 @@ error_t ssd1306_append_gram(ssd1306_device_t *device,
         return E_MEMORY_OUT_OF_BOUND;
     }
 
-    // aquire the spi bus
-    CALL_NULLABLE_WITH_ERROR(device->device_op.spi_aquire);
+    uint32_t row_pos = current_mem_off / SSD1306_GRAM_LINE_WIDTH;
+    uint32_t col_pos = current_mem_off % SSD1306_GRAM_LINE_WIDTH;
 
-    // init gpio state
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
+    uint32_t data_left = w_size;
+    uint8_t *data_ptr = (uint8_t *)w_data;
 
-    // send the display data
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 0);
-    CALL_WITH_ERROR(device->device_op.spi_write, w_data, w_size);
+    uint32_t col_left = SSD1306_GRAM_LINE_WIDTH - col_pos;
 
-    // reset gpio state
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
+    if (col_left == 0)
+    {
+        col_pos = 0;
+        row_pos++;
+        col_left = SSD1306_GRAM_LINE_WIDTH;
+        CALL_WITH_ERROR(ssd1306_set_offset, device, col_pos, row_pos);
+    }
 
-    // release the spi bus
-    CALL_NULLABLE_WITH_ERROR(device->device_op.spi_release);
+    do
+    {
+        uint32_t write_size = data_left > col_left ? col_left : data_left;
+        CALL_WITH_ERROR(write_data, device, data_ptr, write_size);
+
+        data_ptr += write_size;
+        data_left -= write_size;
+
+        if (data_left > 0)
+        {
+            row_pos++;
+            col_pos = 0;
+
+            CALL_WITH_ERROR(ssd1306_set_offset, device, col_pos, row_pos);
+        }
+
+    } while (data_left > 0);
 
     // update the offset
     device->write_offset += w_size;
@@ -306,7 +295,7 @@ error_t SSD1306_write_gram(ssd1306_device_t *device,
     uint32_t col_off = mem_off % SSD1306_GRAM_LINE_WIDTH;
     uint32_t row_off = mem_off / SSD1306_GRAM_LINE_WIDTH;
 
-    error_t ret = SSD1306_set_offset(device, col_off, row_off);
+    error_t ret = ssd1306_set_offset(device, col_off, row_off);
     if (FAILED(ret))
         return ret;
 
@@ -315,30 +304,51 @@ error_t SSD1306_write_gram(ssd1306_device_t *device,
 
 error_t ssd1306_clear_gram(ssd1306_device_t *device, uint8_t fill_data)
 {
-    error_t res = ALL_OK;
+    CALL_WITH_ERROR(ssd1306_set_offset_by_addr, device, 0);
 
-    res = ssd1306_set_offset_by_addr(device, 0);
-    if (FAILED(res))
-        return res;
+    uint32_t dummy_data[4] = {0};
+    memset(dummy_data, fill_data, sizeof(dummy_data));
 
+    const uint32_t fill_count = SSD1306_GRAM_LINE_WIDTH / sizeof(dummy_data);
+
+    for (int i = 0; i < SSD1306_GRAM_LINE_COUNT; i++)
+    {
+        CALL_WITH_ERROR(ssd1306_set_offset, device, 0, i);
+
+        for (int j = 0; j < fill_count; j++)
+        {
+            CALL_WITH_ERROR(write_data, device, dummy_data,
+                            sizeof(dummy_data));
+        }
+    }
+
+    // restore the offset
+    CALL_WITH_ERROR(ssd1306_set_offset_by_addr, device, device->write_offset);
+
+    return ALL_OK;
+}
+
+/******************************************************************************/
+/*                     PRIVATE FUNCTION IMPLEMENTATIONS                       */
+/******************************************************************************/
+
+static error_t write_command_sequence(ssd1306_device_t *device,
+                                      const void *cmd_seq,
+                                      uint32_t size)
+{
     // aquire the spi bus
     CALL_NULLABLE_WITH_ERROR(device->device_op.spi_aquire);
 
     // init gpio state
     CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
+    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 0);
 
-    // send the display data
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
     CALL_WITH_ERROR(device->device_op.gpio_cs_set, 0);
 
-    uint32_t dummy_data[4] = {0};
-    memset(dummy_data, fill_data, sizeof(dummy_data));
+    // send commands
+    CALL_WITH_ERROR(device->device_op.spi_write, cmd_seq, size);
 
-    // flush the entire gram with the fill data
-    for (int i = 0; i < 64; i++)
-        CALL_WITH_ERROR(device->device_op.spi_write,
-                        dummy_data, sizeof(dummy_data));
+    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
 
     // reset gpio state
     CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
@@ -347,10 +357,36 @@ error_t ssd1306_clear_gram(ssd1306_device_t *device, uint8_t fill_data)
     // release the spi bus
     CALL_NULLABLE_WITH_ERROR(device->device_op.spi_release);
 
-    // restore the offset
-    res = ssd1306_set_offset_by_addr(device, device->write_offset);
-    return res;
+    return ALL_OK;
 }
+
+static error_t write_data(ssd1306_device_t *device,
+                          const void *data,
+                          uint32_t size)
+{
+    // aquire the spi bus
+    CALL_NULLABLE_WITH_ERROR(device->device_op.spi_aquire);
+
+    // init gpio state
+    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
+    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
+
+    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 0);
+
+    CALL_WITH_ERROR(device->device_op.spi_write, data, size);
+
+    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
+
+    // reset gpio state
+    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
+    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
+
+    // release the spi bus
+    CALL_NULLABLE_WITH_ERROR(device->device_op.spi_release);
+
+    return ALL_OK;
+}
+
 /******************************************************************************/
 /*                                 END OF FILE                                */
 /******************************************************************************/
