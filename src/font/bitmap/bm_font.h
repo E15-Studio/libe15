@@ -1,9 +1,9 @@
 /**
- * @file template.h
+ * @file bm_font.h
  * @author simakeng (simakeng@outlook.com)
- * @brief This file is too show how code is organized in this project.
+ * @brief
  * @version 0.1
- * @date 2024-06-05
+ * @date 2024-06-06
  *
  * *****************************************************************************
  * @copyright Copyright (C) E15 Studio 2024
@@ -31,39 +31,50 @@
 /*                               INCLUDE FILES                                */
 /******************************************************************************/
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+
+#include <localization/unicode.h>
+
 /******************************************************************************/
 /*                              MACRO DEFINITIONS                             */
 /******************************************************************************/
 
-#ifndef __TEMPLATE_H__
-#define __TEMPLATE_H__
+#ifndef __BM_FONT_H__
+#define __BM_FONT_H__
 
 /******************************************************************************/
 /*                              TYPE DEFINITIONS                              */
 /******************************************************************************/
 
-/******************************************************************************/
-/*                            CONSTANT DEFINITIONS                            */
-/******************************************************************************/
-#ifdef __cplusplus
-extern "C"
+typedef struct
 {
-#endif //! #ifdef __cplusplus
+    uint8_t *data;
+} bmfont_data_t;
 
-#ifdef __cplusplus
-}
-#endif //! #ifdef __cplusplus
-/******************************************************************************/
-/*                           PUBLIC DATA DEFINITIONS                          */
-/******************************************************************************/
-#ifdef __cplusplus
-extern "C"
+typedef struct 
 {
-#endif //! #ifdef __cplusplus
+    uint32_t lut_size;
+    unicode_char_t* code_points;
+    unicode_char_t start;
+    unicode_char_t end;
+} bmfont_lut_t;
 
-#ifdef __cplusplus
-}
-#endif //! #ifdef __cplusplus
+
+typedef struct
+{
+    utf8_t *family;
+
+    uint32_t width;
+    uint32_t height;
+
+    bmfont_data_t* datas;
+
+    bmfont_lut_t* lut;
+    bmfont_data_t* empty_glyph;
+} bmfont_t;
+
 /******************************************************************************/
 /*                         PUBLIC FUNCTION DEFINITIONS                        */
 /******************************************************************************/
@@ -79,4 +90,4 @@ extern "C"
 /*                                 END OF FILE                                */
 /******************************************************************************/
 
-#endif //! #ifndef __TEMPLATE_H__
+#endif //! #ifndef __BM_FONT_H__
