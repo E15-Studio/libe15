@@ -58,7 +58,7 @@ typedef void (*callback_arg_t)(void *parg);
 #ifdef CONFIG_USE_DEVOP_ERROR_PRINT
 #define dev_err(...) print(ERROR, __VA_ARGS__)
 #else
-#define dev_err(...) void(0)
+#define dev_err(...) ((void)(0))
 #endif // ! #ifdef CONFIG_USE_DEVOP_ERROR_PRINT
 
 #ifndef CALL_NULLABLE
