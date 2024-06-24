@@ -252,13 +252,13 @@ error_t ssd1306_append_gram(ssd1306_device_t *device,
         col_pos = 0;
         row_pos++;
         col_left = SSD1306_GRAM_LINE_WIDTH;
-        CALL_WITH_ERROR(ssd1306_set_offset, device, col_pos, row_pos);
+        CALL_WITH_ERROR_RETURN(ssd1306_set_offset, device, col_pos, row_pos);
     }
 
     do
     {
         uint32_t write_size = data_left > col_left ? col_left : data_left;
-        CALL_WITH_ERROR(write_data, device, data_ptr, write_size);
+        CALL_WITH_ERROR_RETURN(write_data, device, data_ptr, write_size);
 
         data_ptr += write_size;
         data_left -= write_size;
@@ -268,7 +268,7 @@ error_t ssd1306_append_gram(ssd1306_device_t *device,
             row_pos++;
             col_pos = 0;
 
-            CALL_WITH_ERROR(ssd1306_set_offset, device, col_pos, row_pos);
+            CALL_WITH_ERROR_RETURN(ssd1306_set_offset, device, col_pos, row_pos);
         }
 
     } while (data_left > 0);
@@ -304,7 +304,7 @@ error_t SSD1306_write_gram(ssd1306_device_t *device,
 
 error_t ssd1306_clear_gram(ssd1306_device_t *device, uint8_t fill_data)
 {
-    CALL_WITH_ERROR(ssd1306_set_offset_by_addr, device, 0);
+    CALL_WITH_ERROR_RETURN(ssd1306_set_offset_by_addr, device, 0);
 
     uint32_t dummy_data[4] = {0};
     memset(dummy_data, fill_data, sizeof(dummy_data));
@@ -313,17 +313,17 @@ error_t ssd1306_clear_gram(ssd1306_device_t *device, uint8_t fill_data)
 
     for (int i = 0; i < SSD1306_GRAM_LINE_COUNT; i++)
     {
-        CALL_WITH_ERROR(ssd1306_set_offset, device, 0, i);
+        CALL_WITH_ERROR_RETURN(ssd1306_set_offset, device, 0, i);
 
         for (int j = 0; j < fill_count; j++)
         {
-            CALL_WITH_ERROR(write_data, device, dummy_data,
+            CALL_WITH_ERROR_RETURN(write_data, device, dummy_data,
                             sizeof(dummy_data));
         }
     }
 
     // restore the offset
-    CALL_WITH_ERROR(ssd1306_set_offset_by_addr, device, device->write_offset);
+    CALL_WITH_ERROR_RETURN(ssd1306_set_offset_by_addr, device, device->write_offset);
 
     return ALL_OK;
 }
@@ -340,19 +340,19 @@ static error_t write_command_sequence(ssd1306_device_t *device,
     CALL_NULLABLE_WITH_ERROR(device->device_op.spi_aquire);
 
     // init gpio state
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 0);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_cs_set, 1);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_dc_set, 0);
 
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 0);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_cs_set, 0);
 
     // send commands
-    CALL_WITH_ERROR(device->device_op.spi_write, cmd_seq, size);
+    CALL_WITH_ERROR_RETURN(device->device_op.spi_write, cmd_seq, size);
 
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_cs_set, 1);
 
     // reset gpio state
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_cs_set, 1);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_dc_set, 1);
 
     // release the spi bus
     CALL_NULLABLE_WITH_ERROR(device->device_op.spi_release);
@@ -368,18 +368,18 @@ static error_t write_data(ssd1306_device_t *device,
     CALL_NULLABLE_WITH_ERROR(device->device_op.spi_aquire);
 
     // init gpio state
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_cs_set, 1);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_dc_set, 1);
 
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 0);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_cs_set, 0);
 
-    CALL_WITH_ERROR(device->device_op.spi_write, data, size);
+    CALL_WITH_ERROR_RETURN(device->device_op.spi_write, data, size);
 
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_cs_set, 1);
 
     // reset gpio state
-    CALL_WITH_ERROR(device->device_op.gpio_cs_set, 1);
-    CALL_WITH_ERROR(device->device_op.gpio_dc_set, 1);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_cs_set, 1);
+    CALL_WITH_ERROR_RETURN(device->device_op.gpio_dc_set, 1);
 
     // release the spi bus
     CALL_NULLABLE_WITH_ERROR(device->device_op.spi_release);

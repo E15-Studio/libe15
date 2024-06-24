@@ -76,13 +76,13 @@ typedef void (*callback_arg_t)(void *parg);
     } while (0u)
 #endif // ! CALL_NULLABLE
 
-#ifndef CALL_WITH_ERROR
+#ifndef CALL_WITH_ERROR_RETURN
 /**
  * @brief call a function and check if it returns an error.
  * the function **must not** be null, but we don't check it.
  * if the function returns an error, the error will be logged and returned.
  */
-#define CALL_WITH_ERROR(func, ...)                         \
+#define CALL_WITH_ERROR_RETURN(func, ...)                         \
     do                                                     \
     {                                                      \
         error_t err = (func)(__VA_ARGS__);                 \
@@ -94,9 +94,9 @@ typedef void (*callback_arg_t)(void *parg);
             return err;                                    \
         }                                                  \
     } while (0u)
-#endif // ! CALL_WITH_ERROR
+#endif // ! CALL_WITH_ERROR_RETURN
 
-#ifndef CALL_WITH_ERROR_EXIT
+#ifndef CALL_WITH_CODE_GOTO
 /**
  * @brief call a function and check if it returns an error.
  * the function **must not** be null, but we don't check it.
@@ -104,7 +104,7 @@ typedef void (*callback_arg_t)(void *parg);
  * and the error code will be set to the given symbol, then
  * goto the given label.
  */
-#define CALL_WITH_ERROR_EXIT(hr, lab, func, ...)           \
+#define CALL_WITH_CODE_GOTO(hr, lab, func, ...)           \
     do                                                     \
     {                                                      \
         hr = (func)(__VA_ARGS__);                          \
@@ -116,7 +116,7 @@ typedef void (*callback_arg_t)(void *parg);
             goto lab;                                      \
         }                                                  \
     } while (0u)
-#endif // ! CALL_WITH_ERROR_EXIT
+#endif // ! CALL_WITH_CODE_GOTO
 
 #ifndef CALL_NULLABLE_WITH_ERROR
 /**

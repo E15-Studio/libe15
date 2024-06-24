@@ -59,19 +59,19 @@ error_t st7789_write_command(st7789_device_t *device, uint8_t command, const voi
     if (device_op.bus_mode == ST7789_BUS_MODE_SPI)
     {
 
-        CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_dc_set, 0);
-        CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_cs_set, 0);
-        CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.write, 1, &command);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 0);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 0);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.write, 1, &command);
         if (nargs != 0)
         {
-            CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_dc_set, 1);
-            CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.write, nargs, pargs);
-            CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_cs_set, 1);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.write, nargs, pargs);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 1);
         }
         else
         {
-            CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_cs_set, 1);
-            CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_dc_set, 1);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 1);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
         }
     }
     else if (device_op.bus_mode == ST7789_BUS_MODE_8080)
@@ -80,8 +80,8 @@ error_t st7789_write_command(st7789_device_t *device, uint8_t command, const voi
         if (device_op.host_is_big_endian == false)
             data = U16ECV(data);
 
-        CALL_WITH_ERROR_EXIT(err, exit, device_op.bus80.command_write, 2, &data);
-        CALL_WITH_ERROR_EXIT(err, exit, device_op.bus80.data_write, nargs, pargs);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.command_write, 2, &data);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write, nargs, pargs);
     }
     else // wtf?
     {
@@ -105,22 +105,22 @@ error_t st7789_write_pixel_data(st7789_device_t *device, const rgb565_t *pdata, 
     if (device_op.bus_mode == ST7789_BUS_MODE_SPI)
     {
 
-        CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_dc_set, 1);
-        CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_cs_set, 0);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 0);
 
         for (uint32_t i = 0; i < ndata; i++)
         {
             rgb565_t data = U16ECV(pdata[i]);
-            CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.write, 2, &data);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.write, 2, &data);
         }
 
-        CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_dc_set, 1);
-        CALL_WITH_ERROR_EXIT(err, exit, device_op.spi.gpio_cs_set, 1);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 1);
     }
     else if (device_op.bus_mode == ST7789_BUS_MODE_8080)
     {
         if (device_op.host_is_big_endian == true)
-            CALL_WITH_ERROR_EXIT(err, exit, device_op.bus80.data_write, ndata * 2, pdata);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write, ndata * 2, pdata);
 
         // we need to convert the data to big endian
         const int max_cache_size = 1024;
@@ -140,7 +140,7 @@ error_t st7789_write_pixel_data(st7789_device_t *device, const rgb565_t *pdata, 
 
                 MEMCOPY_FUNCMAP(gram_buf, pdata + offset, byte_transfer, rgb565_t, U16ECV);
 
-                CALL_WITH_ERROR_EXIT(err, exit, device_op.bus80.data_write,
+                CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write,
                                      byte_transfer, gram_buf);
             }
             free(gram_buf);
@@ -152,7 +152,7 @@ error_t st7789_write_pixel_data(st7789_device_t *device, const rgb565_t *pdata, 
             for (int i = 0; i < num_transtfer; i++)
             {
                 rgb565_t data = U16ECV(pdata[i]);
-                CALL_WITH_ERROR_EXIT(err, exit, device_op.bus80.data_write, 2, &data);
+                CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write, 2, &data);
             }
         }
     }
@@ -210,7 +210,7 @@ error_t st7789_init(st7789_device_t *device, st7789_device_init_t *init)
     {
         CALL_NULLABLE_WITH_ERROR(init->device_op.spi.gpio_cs_set, 1);
         CALL_NULLABLE_WITH_ERROR(init->device_op.spi.gpio_rst_set, 1);
-        CALL_WITH_ERROR(init->device_op.spi.gpio_dc_set, 0);
+        CALL_WITH_ERROR_RETURN(init->device_op.spi.gpio_dc_set, 0);
     }
 
     // init backlight
@@ -218,25 +218,25 @@ error_t st7789_init(st7789_device_t *device, st7789_device_init_t *init)
 
     // soft reset
     // Frame memory contents are unaffected by this command.
-    CALL_WITH_ERROR(st7789_write_command, device, SWRESET, NULL, 0);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, SWRESET, NULL, 0);
 
     // wait 5ms
     sys_delay_ms(120);
 
     // sleep out
-    CALL_WITH_ERROR(st7789_write_command, device, SLEEP_OUT, NULL, 0);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, SLEEP_OUT, NULL, 0);
 
     // wait 5ms
     sys_delay_ms(5);
 
     // setting gram mapping
-    CALL_WITH_ERROR(st7789_write_command, device, MADCTL, "\x00", 1);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, MADCTL, "\x00", 1);
 
     // setting pixel format: 16bit RGB 565
-    CALL_WITH_ERROR(st7789_write_command, device, COLMOD, "\x05", 1);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, COLMOD, "\x05", 1);
 
     // porch control:
-    CALL_WITH_ERROR(st7789_write_command, device, PORCTRL,
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, PORCTRL,
                     "\x03" // BPA[6:0] Back porch: 3 pclk
                     "\x03" // FPA[6:0] Front porch: 3 pclk
                     "\x00" // PSEN: separate porch control: disabled
@@ -246,54 +246,54 @@ error_t st7789_init(st7789_device_t *device, st7789_device_init_t *init)
                     5);
 
     // frame rate control: partial and idle mode use normal mode settings
-    CALL_WITH_ERROR(st7789_write_command, device, FRCTRL1, "\x00\x0F\x0F", 3);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, FRCTRL1, "\x00\x0F\x0F", 3);
 
     // frame rate control: fps = 10M / (250 + BPA + FPA) * (250 + RTNA[4:0])
     // in this config fps = 29.9706
-    CALL_WITH_ERROR(st7789_write_command, device, FRCTRL2,
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, FRCTRL2,
                     "\x0F" // RTNA[4:0] : 15 pclk
                     ,
                     1);
 
     // gate voltage control: set to VGH = 13.26V VGL = -10.43V
-    CALL_WITH_ERROR(st7789_write_command, device, GCTRL, "\x35", 1);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, GCTRL, "\x35", 1);
 
     // VCOM Setting control: set to VCOM=1.35V
-    CALL_WITH_ERROR(st7789_write_command, device, VCOMS, "\x19", 1);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, VCOMS, "\x19", 1);
 
     // LCM Control
-    CALL_WITH_ERROR(st7789_write_command, device, LCMCTRL, "\x2C", 1);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, LCMCTRL, "\x2C", 1);
 
     // VDV and VRH Command Enable
-    CALL_WITH_ERROR(st7789_write_command, device, VDVVRHEN, "\x01\xFF", 2);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, VDVVRHEN, "\x01\xFF", 2);
 
     // VRH = 4.6 + (vcom + vcom offset + vdv)
-    CALL_WITH_ERROR(st7789_write_command, device, VRHS, "\x12", 1);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, VRHS, "\x12", 1);
 
     // VDV = 0V
-    CALL_WITH_ERROR(st7789_write_command, device, VDVSET, "\x20", 1);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, VDVSET, "\x20", 1);
 
     // Power Control 1 : AVDD = 6.8V, AVDD = -4.8V, VDS = 2.3V
-    CALL_WITH_ERROR(st7789_write_command, device, PWCTRL1, "\xA4\xA1", 2);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, PWCTRL1, "\xA4\xA1", 2);
 
     // Positive Voltage Gamma Control
-    CALL_WITH_ERROR(st7789_write_command, device, PVGAMCTRL,
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, PVGAMCTRL,
                     "\xD0\x04\x0D\x11\x13\x2B\x3F\x54\x4C\x18\x0D\x0B\x1F\x23",
                     14);
 
     // Negative Voltage Gamma Control
-    CALL_WITH_ERROR(st7789_write_command, device, NVGAMCTRL,
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, NVGAMCTRL,
                     "\xD0\x04\x0C\x11\x13\x2C\x3F\x44\x51\x2F\x1F\x1F\x20\x23",
                     14);
 
     // display inversion on
-    CALL_WITH_ERROR(st7789_write_command, device, INVON, NULL, 0);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, INVON, NULL, 0);
 
     // TE signal output on
-    CALL_WITH_ERROR(st7789_write_command, device, TEON, "\x00", 1);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, TEON, "\x00", 1);
 
     // sleep out
-    CALL_WITH_ERROR(st7789_write_command, device, SLEEP_OUT, NULL, 0);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, SLEEP_OUT, NULL, 0);
 
     // delay 120ms
     sys_delay_ms(120);
@@ -306,7 +306,7 @@ error_t st7789_display_on(st7789_device_t *device)
     PARAM_NOT_NULL(device);
     st7789_device_op_t *device_op = &device->device_op;
 
-    CALL_WITH_ERROR(st7789_write_command, device, DISPON, NULL, 0);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, DISPON, NULL, 0);
     CALL_NULLABLE_WITH_ERROR(device_op->pwm_change_duty, 10000);
 
     return ALL_OK;
@@ -317,7 +317,7 @@ error_t st7789_display_off(st7789_device_t *device)
     PARAM_NOT_NULL(device);
     st7789_device_op_t *device_op = &device->device_op;
 
-    CALL_WITH_ERROR(st7789_write_command, device, DISPOFF, NULL, 0);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, DISPOFF, NULL, 0);
     CALL_NULLABLE_WITH_ERROR(device_op->pwm_change_duty, 0);
 
     return ALL_OK;
@@ -348,11 +348,11 @@ error_t st7789_display_set_window(st7789_device_t *device, rect_t rect)
     args.begin = U16ECV(rect.left);
     args.end = U16ECV(rect.right);
 
-    CALL_WITH_ERROR(st7789_write_command, device, CASET, &args, 4);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, CASET, &args, 4);
 
     args.begin = U16ECV(rect.top);
     args.end = U16ECV(rect.bottom);
-    CALL_WITH_ERROR(st7789_write_command, device, RASET, &args, 4);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, RASET, &args, 4);
 
     return ALL_OK;
 }
@@ -362,9 +362,9 @@ error_t st7789_append_gram(st7789_device_t *device, const rgb565_t *w_data, uint
     PARAM_NOT_NULL(device);
     PARAM_NOT_NULL(w_data);
 
-    CALL_WITH_ERROR(st7789_write_command, device, RAMWR, NULL, 0);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, RAMWR, NULL, 0);
 
-    CALL_WITH_ERROR(st7789_write_pixel_data, device, w_data, npixel);
+    CALL_WITH_ERROR_RETURN(st7789_write_pixel_data, device, w_data, npixel);
 
     return ALL_OK;
 }
@@ -381,9 +381,9 @@ error_t st7789_display_clear_gram(st7789_device_t *device, rgb565_t color)
         .right = device->resolution.x,
     };
 
-    CALL_WITH_ERROR(st7789_display_set_window, device, rect);
+    CALL_WITH_ERROR_RETURN(st7789_display_set_window, device, rect);
 
-    CALL_WITH_ERROR(st7789_write_command, device, RAMWR, NULL, 0);
+    CALL_WITH_ERROR_RETURN(st7789_write_command, device, RAMWR, NULL, 0);
 
     error_t err = ALL_OK;
 
@@ -396,19 +396,19 @@ error_t st7789_display_clear_gram(st7789_device_t *device, rgb565_t color)
 
     if (device->device_op.bus_mode == ST7789_BUS_MODE_SPI)
     {
-        CALL_WITH_ERROR_EXIT(err, exit, device_op->spi.gpio_dc_set, 1);
+        CALL_WITH_CODE_GOTO(err, exit, device_op->spi.gpio_dc_set, 1);
 
-        CALL_WITH_ERROR_EXIT(err, exit, device_op->spi.gpio_cs_set, 0);
+        CALL_WITH_CODE_GOTO(err, exit, device_op->spi.gpio_cs_set, 0);
         for (uint32_t i = 0; i < npixels; i++)
         {
-            CALL_WITH_ERROR_EXIT(err, exit, device_op->spi.write, 2, &color);
+            CALL_WITH_CODE_GOTO(err, exit, device_op->spi.write, 2, &color);
         }
-        CALL_WITH_ERROR_EXIT(err, exit, device_op->spi.gpio_dc_set, 1);
-        CALL_WITH_ERROR_EXIT(err, exit, device_op->spi.gpio_cs_set, 1);
+        CALL_WITH_CODE_GOTO(err, exit, device_op->spi.gpio_dc_set, 1);
+        CALL_WITH_CODE_GOTO(err, exit, device_op->spi.gpio_cs_set, 1);
     }
     else if (device->device_op.bus_mode == ST7789_BUS_MODE_8080)
     {
-        CALL_WITH_ERROR_EXIT(err, exit, device_op->bus80.data_set, npixels, color);
+        CALL_WITH_CODE_GOTO(err, exit, device_op->bus80.data_set, npixels, color);
     }
     else
     {
@@ -442,7 +442,7 @@ error_t st7789_clear_gram_set_buf(st7789_device_t *device, st7789_gram_clear_arg
 
     uint32_t npixels = device->resolution.x * lines_to_write;
 
-    CALL_WITH_ERROR(st7789_update_gram_set_buff, device,
+    CALL_WITH_ERROR_RETURN(st7789_update_gram_set_buff, device,
                     npixels, args->buf);
 
     st7789_gram_clear_config.lines_left -= lines_to_write;
@@ -464,9 +464,9 @@ error_t st7789_clear_gram_cplt_handler(st7789_device_t *device, void *pargs)
 
     if (st7789_gram_clear_config.lines_left > 0)
     {
-        CALL_WITH_ERROR(st7789_clear_gram_set_buf, device, args);
+        CALL_WITH_ERROR_RETURN(st7789_clear_gram_set_buf, device, args);
 
-        CALL_WITH_ERROR(st7789_update_gram_stream_start, device,
+        CALL_WITH_ERROR_RETURN(st7789_update_gram_stream_start, device,
                         st7789_clear_gram_cplt_handler,
                         pargs);
     }
@@ -511,7 +511,7 @@ error_t st7789_display_clear_gram_async(st7789_device_t *device, rgb565_t color)
         pbuf[i] = U16ECV(color);
 
     // prepare update window
-    CALL_WITH_ERROR(st7789_display_set_window, device, rect);
+    CALL_WITH_ERROR_RETURN(st7789_display_set_window, device, rect);
 
     // update flags
     st7789_gram_clear_config.clear_color = color;
@@ -587,14 +587,14 @@ error_t st7789_update_gram_stream_start(
     // other wise, we just need to send data
     if (device->async_state != ST7789_ASYNC_STATE_BUFFER_RELOADED)
     {
-        CALL_WITH_ERROR_EXIT(err, error_exit, st7789_write_command, device, RAMWR, NULL, 0);
+        CALL_WITH_CODE_GOTO(err, error_exit, st7789_write_command, device, RAMWR, NULL, 0);
 
         st7789_device_op_t *device_op = &device->device_op;
         if (device->device_op.bus_mode == ST7789_BUS_MODE_SPI)
         {
-            CALL_WITH_ERROR_EXIT(err, error_exit, device_op->spi.gpio_dc_set, 1);
+            CALL_WITH_CODE_GOTO(err, error_exit, device_op->spi.gpio_dc_set, 1);
 
-            CALL_WITH_ERROR_EXIT(err, error_exit, device_op->spi.gpio_cs_set, 0);
+            CALL_WITH_CODE_GOTO(err, error_exit, device_op->spi.gpio_cs_set, 0);
         }
         else if (device->device_op.bus_mode == ST7789_BUS_MODE_8080)
         {
@@ -612,14 +612,14 @@ error_t st7789_update_gram_stream_start(
     // send the data
     if (device->device_op.bus_mode == ST7789_BUS_MODE_SPI)
     {
-        CALL_WITH_ERROR_EXIT(err, error_exit,
+        CALL_WITH_CODE_GOTO(err, error_exit,
                              device->device_op.spi.write_async_start,
                              device->gram_tx_buf_size,
                              device->gram_tx_buf);
     }
     else if (device->device_op.bus_mode == ST7789_BUS_MODE_8080)
     {
-        CALL_WITH_ERROR_EXIT(err, error_exit,
+        CALL_WITH_CODE_GOTO(err, error_exit,
                              device->device_op.bus80.data_write_async_start,
                              device->gram_tx_buf_size,
                              device->gram_tx_buf);
@@ -666,9 +666,9 @@ error_t st7789_async_completed_notify(st7789_device_t *device)
         st7789_device_op_t *device_op = &device->device_op;
         if (device->device_op.bus_mode == ST7789_BUS_MODE_SPI)
         {
-            CALL_WITH_ERROR_EXIT(err, error_exit, device_op->spi.gpio_dc_set, 1);
+            CALL_WITH_CODE_GOTO(err, error_exit, device_op->spi.gpio_dc_set, 1);
 
-            CALL_WITH_ERROR_EXIT(err, error_exit, device_op->spi.gpio_cs_set, 1);
+            CALL_WITH_CODE_GOTO(err, error_exit, device_op->spi.gpio_cs_set, 1);
         }
         else if (device->device_op.bus_mode == ST7789_BUS_MODE_8080)
         {
