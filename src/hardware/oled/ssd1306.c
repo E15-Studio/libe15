@@ -245,25 +245,18 @@ error_t ssd1306_append_gram(ssd1306_device_t *device,
     uint32_t data_left = w_size;
     uint8_t *data_ptr = (uint8_t *)w_data;
 
-    uint32_t col_left = SSD1306_GRAM_LINE_WIDTH - col_pos;
-
-    if (col_left == 0)
-    {
-        col_pos = 0;
-        row_pos++;
-        col_left = SSD1306_GRAM_LINE_WIDTH;
-        CALL_WITH_ERROR_RETURN(ssd1306_set_offset, device, col_pos, row_pos);
-    }
-
     do
     {
+        uint32_t col_left = SSD1306_GRAM_LINE_WIDTH - col_pos;
         uint32_t write_size = data_left > col_left ? col_left : data_left;
         CALL_WITH_ERROR_RETURN(write_data, device, data_ptr, write_size);
 
+        col_pos += write_size;
         data_ptr += write_size;
         data_left -= write_size;
+        col_left -= write_size;
 
-        if (data_left > 0)
+        if (col_left == 0)
         {
             row_pos++;
             col_pos = 0;
