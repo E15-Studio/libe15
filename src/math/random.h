@@ -40,13 +40,13 @@
 #ifndef __RANDOM_H__
 #define __RANDOM_H__
 
-#define LCG_DEFAULT_INIT(_seed) \
-    {                           \
-        .seed = (_seed),        \
-        .multiplier = 48271,    \
-        .increment = 0,         \
-        .modulus = 2147483647,  \
-    }
+#define LCG_DEFAULT_INIT(_seed)         \
+    ((linear_congruential_generator_t){ \
+        .seed = (_seed),                \
+        .multiplier = 48271,            \
+        .increment = 0,                 \
+        .modulus = 2147483647,          \
+    })
 
 /******************************************************************************/
 /*                              TYPE DEFINITIONS                              */
@@ -54,9 +54,9 @@
 
 /**
  * @brief States of a linear congruential generator.
- * 
+ *
  * @see https://en.wikipedia.org/wiki/Linear_congruential_generator
- * 
+ *
  * @example
  *  rand_lcg_t lcg = LCG_DEFAULT_INIT(12345678);
  *  uint32_t rand = rand_lcg_next(&lcg);
@@ -103,11 +103,11 @@ extern "C"
 
     /**
      * @brief Get the next random number from the LCG.
-     * 
+     *
      * @see linear_congruential_generator_t
-     * 
-     * @param lcg 
-     * @return uint32_t 
+     *
+     * @param lcg
+     * @return uint32_t
      */
     uint32_t rand_lcg_next(rand_lcg_t *lcg);
 
