@@ -5,7 +5,6 @@
  * @version 0.1
  * @date 2023-06-14
  *
- * @copyright Copyright (c) 2023
  *******************************************************************************
  * @copyright Copyright (C) E15 Studio 2024
  *
@@ -33,7 +32,6 @@
 /******************************************************************************/
 
 #include <error_codes.h>
-#include <debug/print.h>
 
 /******************************************************************************/
 /*                              MACRO DEFINITIONS                             */
@@ -56,6 +54,7 @@ typedef void (*callback_arg_t)(void *parg);
 #endif // ! #ifdef __CALLBACK_TYPE_DEF__
 
 #ifdef CONFIG_USE_DEVOP_ERROR_PRINT
+#include <debug/print.h>
 #define dev_err(...) print(ERROR, __VA_ARGS__)
 #else
 #define dev_err(...) ((void)(0))

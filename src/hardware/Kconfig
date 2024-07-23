@@ -8,5 +8,7 @@ config USE_DEVOP_ERROR_PRINT
 
 source "src/hardware/oled/Kconfig"
 
+source "src/hardware/adc/Kconfig"
+
 endmenu
 

@@ -1,0 +1,5 @@
+menu "Analog to Digital Converters (ADCs)"
+
+source "src/hardware/adc/chipsea/Kconfig"
+
+endmenu

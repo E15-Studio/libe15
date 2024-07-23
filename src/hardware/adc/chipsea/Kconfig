@@ -1,0 +1,6 @@
+config ADC_CS123X
+    bool "Chipsea CS1237/CS1238 ADC Driver"
+    default n
+    help
+      Say y if you want a driver for the this.
+      controller.

@@ -10,6 +10,9 @@ include scripts/config.mk
 # Rules for search target
 include scripts/source.mk
 
+# Rules for environment
+include scripts/envs.mk
+
 # Rules for tool and utilities
 include scripts/tools.mk
 
@@ -21,17 +24,15 @@ include scripts/test.mk
 
 doc: $(DOCUMENT_TARGET)
 
-build: $(TEST_TARGET)
-	@echo done!
-
 test: $(TEST_TARGET_LOGS)
 	@echo done!
 
-defconfig:
-	-rm .config
+defconfig: $(BUILD_DIR)
+	@-mv -f .config .config.old
+	@-rm -f .config
 	@genconfig --header-path=$(AUTOCONF_PATH) --config-out=.config
 
-menuconfig:
+menuconfig: $(BUILD_DIR)
 	@menuconfig
 	@genconfig --header-path=$(AUTOCONF_PATH)
 
@@ -47,4 +48,4 @@ help:
 	@echo "  target: all            - build all target"
 	@echo "  target: help           - display this help message"
 
-.PHONY: doc test
+.PHONY: test clean defconfig menuconfig

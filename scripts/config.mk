@@ -23,3 +23,9 @@ SHELL := sh
 
 CFLAGS :=
 LDLIBS := -lm
+
+ifeq ($(OS), Windows_NT)
+MKDIR := mkdir
+else
+MKDIR := mkdir -p
+endif
