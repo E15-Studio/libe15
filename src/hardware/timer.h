@@ -58,6 +58,3 @@ uint32_t sys_get_tick();
 uint64_t sys_get_ticku64();
 
 void systick_timer_isr(void);
-
-
-#include <stm32f407xx.h>

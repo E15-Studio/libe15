@@ -5,19 +5,44 @@
  * @version 0.1
  * @date 2023-07-19
  *
- * @copyright Copyright (c) 2023
+ * *****************************************************************************
+ * @copyright Copyright (C) E15 Studio 2024
+ *
+ * This program is FREE software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License version 3 as published by the
+ * Free Software Foundation.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 675 Mass Ave, Cambridge, MA 02139, USA. Or you can visit the link below to
+ * read the license online, or you can find a copy of the license in the root
+ * directory of this project named "LICENSE" file.
+ *
+ * https://www.gnu.org/licenses/gpl-3.0.html
+ *
+ * *****************************************************************************
  *
  */
 
+/******************************************************************************/
+/*                               INCLUDE FILES                                */
+/******************************************************************************/
+
 #include "st7789.h"
 
-#include <libe15-hw/devop.h>
-#include <libe15-hw/timer.h>
+#include <hardware/devop.h>
+#include <hardware/timer.h>
 
 #include <string.h>
 #include <stdlib.h>
 
-#include <io_adapter.h>
+/******************************************************************************/
+/*                            CONSTANT DEFINITIONS                            */
+/******************************************************************************/
+
 /**
  * config registers of ST7789
  */
@@ -45,126 +70,37 @@ enum
     CASET = 0x2A,
     RASET = 0x2B,
     RAMWR = 0x2C,
+    RAMRD = 0x2E,
     TEON = 0x35,
 };
 
-error_t st7789_write_command(st7789_device_t *device, uint8_t command, const void *pargs, uint32_t nargs)
+/******************************************************************************/
+/*                              TYPE DEFINITIONS                              */
+/******************************************************************************/
+
+static struct
 {
-    PARAM_NOT_NULL(device);
-    error_t err = ALL_OK;
-    st7789_device_op_t device_op = device->device_op;
+    rgb565_t clear_color;
+    uint16_t lines_left;
+} st7789_gram_clear_config;
 
-    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_aquire);
-
-    if (device_op.bus_mode == ST7789_BUS_MODE_SPI)
-    {
-
-        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 0);
-        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 0);
-        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.write, 1, &command);
-        if (nargs != 0)
-        {
-            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
-            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.write, nargs, pargs);
-            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 1);
-        }
-        else
-        {
-            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 1);
-            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
-        }
-    }
-    else if (device_op.bus_mode == ST7789_BUS_MODE_8080)
-    {
-        uint16_t data = command;
-        if (device_op.host_is_big_endian == false)
-            data = U16ECV(data);
-
-        CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.command_write, 2, &data);
-        CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write, nargs, pargs);
-    }
-    else // wtf?
-    {
-        err = E_INVALID_ARGUMENT;
-        goto exit;
-    }
-
-exit:
-    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_release);
-    return err;
-}
-
-error_t st7789_write_pixel_data(st7789_device_t *device, const rgb565_t *pdata, uint32_t ndata)
+typedef struct
 {
-    PARAM_NOT_NULL(device);
-    error_t err = ALL_OK;
-    st7789_device_op_t device_op = device->device_op;
+    rgb565_t *buf;
+    uint16_t buf_size;
+} st7789_gram_clear_args_t;
 
-    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_aquire);
+/******************************************************************************/
+/*                        PRIVATE FUNCTION DEFINITIONS                        */
+/******************************************************************************/
 
-    if (device_op.bus_mode == ST7789_BUS_MODE_SPI)
-    {
+static error_t st7789_write_command(st7789_device_t *device, uint8_t command, const void *pargs, uint32_t nargs);
+static error_t st7789_write_pixel_data(st7789_device_t *device, const rgb565_t *pdata, uint32_t ndata);
+static error_t st7789_clear_gram_cplt_handler(st7789_device_t *device, void *pargs);
 
-        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
-        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 0);
-
-        for (uint32_t i = 0; i < ndata; i++)
-        {
-            rgb565_t data = U16ECV(pdata[i]);
-            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.write, 2, &data);
-        }
-
-        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
-        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 1);
-    }
-    else if (device_op.bus_mode == ST7789_BUS_MODE_8080)
-    {
-        if (device_op.host_is_big_endian == true)
-            CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write, ndata * 2, pdata);
-
-        // we need to convert the data to big endian
-        const int max_cache_size = 1024;
-        uint32_t num_transtfer = 0;
-        uint32_t cache_size = ndata > max_cache_size ? max_cache_size : ndata;
-        rgb565_t *gram_buf = malloc(cache_size * sizeof(rgb565_t));
-        if (gram_buf != NULL)
-        {
-            // malloc success, use heap buffer to speed up the transfer
-            num_transtfer = (ndata + (cache_size - 1)) / cache_size;
-            for (int i = 0; i < num_transtfer; i++)
-            {
-                uint32_t byte_transfer = cache_size;
-                if (i == num_transtfer - 1)
-                    byte_transfer = ndata - (num_transtfer - 1) * cache_size;
-                uint32_t offset = i * cache_size;
-
-                MEMCOPY_FUNCMAP(gram_buf, pdata + offset, byte_transfer, rgb565_t, U16ECV);
-
-                CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write,
-                                     byte_transfer, gram_buf);
-            }
-            free(gram_buf);
-        }
-        else
-        {
-            // malloc failed, do it one by one
-            num_transtfer = ndata;
-            for (int i = 0; i < num_transtfer; i++)
-            {
-                rgb565_t data = U16ECV(pdata[i]);
-                CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write, 2, &data);
-            }
-        }
-    }
-    else // wtf?
-    {
-        return E_INVALID_ARGUMENT;
-    }
-
-exit:
-    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_release);
-    return err;
-}
+/******************************************************************************/
+/*                      PUBLIC FUNCTION IMPLEMENTATIONS                       */
+/******************************************************************************/
 
 error_t st7789_init(st7789_device_t *device, st7789_device_init_t *init)
 {
@@ -174,7 +110,7 @@ error_t st7789_init(st7789_device_t *device, st7789_device_init_t *init)
 
     if (init->device_op.bus_mode == ST7789_BUS_MODE_UNKNOW)
     {
-        print(LERROR, "bus_mode is unknow, please configure a correct bus_mode.\n");
+        print(ERROR, "bus_mode is unknow, please configure a correct bus_mode.\n");
         return E_INVALID_ARGUMENT;
     }
     else if (init->device_op.bus_mode == ST7789_BUS_MODE_SPI)
@@ -190,11 +126,11 @@ error_t st7789_init(st7789_device_t *device, st7789_device_init_t *init)
     }
 
     if (init->resolution.x > 240)
-        print(LWARN,
+        print(WARN,
               "resolution.x (%d) is larger than 240, this may cause unexpected behavior.\n",
               init->resolution.x);
     if (init->resolution.y > 320)
-        print(LWARN,
+        print(WARN,
               "resolution.y (%d) is larger than 320, this may cause unexpected behavior.\n",
               init->resolution.y);
 
@@ -237,13 +173,13 @@ error_t st7789_init(st7789_device_t *device, st7789_device_init_t *init)
 
     // porch control:
     CALL_WITH_ERROR_RETURN(st7789_write_command, device, PORCTRL,
-                    "\x03" // BPA[6:0] Back porch: 3 pclk
-                    "\x03" // FPA[6:0] Front porch: 3 pclk
-                    "\x00" // PSEN: separate porch control: disabled
-                    "\x33" // BPB[3:0] FPB[3:0] Porch Setting in idle mode
-                    "\x33" // BPC[3:0] FPC[3:0] Porch Setting in partial mode
-                    ,
-                    5);
+                           "\x03" // BPA[6:0] Back porch: 3 pclk
+                           "\x03" // FPA[6:0] Front porch: 3 pclk
+                           "\x00" // PSEN: separate porch control: disabled
+                           "\x33" // BPB[3:0] FPB[3:0] Porch Setting in idle mode
+                           "\x33" // BPC[3:0] FPC[3:0] Porch Setting in partial mode
+                           ,
+                           5);
 
     // frame rate control: partial and idle mode use normal mode settings
     CALL_WITH_ERROR_RETURN(st7789_write_command, device, FRCTRL1, "\x00\x0F\x0F", 3);
@@ -251,9 +187,9 @@ error_t st7789_init(st7789_device_t *device, st7789_device_init_t *init)
     // frame rate control: fps = 10M / (250 + BPA + FPA) * (250 + RTNA[4:0])
     // in this config fps = 29.9706
     CALL_WITH_ERROR_RETURN(st7789_write_command, device, FRCTRL2,
-                    "\x0F" // RTNA[4:0] : 15 pclk
-                    ,
-                    1);
+                           "\x0F" // RTNA[4:0] : 15 pclk
+                           ,
+                           1);
 
     // gate voltage control: set to VGH = 13.26V VGL = -10.43V
     CALL_WITH_ERROR_RETURN(st7789_write_command, device, GCTRL, "\x35", 1);
@@ -278,13 +214,13 @@ error_t st7789_init(st7789_device_t *device, st7789_device_init_t *init)
 
     // Positive Voltage Gamma Control
     CALL_WITH_ERROR_RETURN(st7789_write_command, device, PVGAMCTRL,
-                    "\xD0\x04\x0D\x11\x13\x2B\x3F\x54\x4C\x18\x0D\x0B\x1F\x23",
-                    14);
+                           "\xD0\x04\x0D\x11\x13\x2B\x3F\x54\x4C\x18\x0D\x0B\x1F\x23",
+                           14);
 
     // Negative Voltage Gamma Control
     CALL_WITH_ERROR_RETURN(st7789_write_command, device, NVGAMCTRL,
-                    "\xD0\x04\x0C\x11\x13\x2C\x3F\x44\x51\x2F\x1F\x1F\x20\x23",
-                    14);
+                           "\xD0\x04\x0C\x11\x13\x2C\x3F\x44\x51\x2F\x1F\x1F\x20\x23",
+                           14);
 
     // display inversion on
     CALL_WITH_ERROR_RETURN(st7789_write_command, device, INVON, NULL, 0);
@@ -319,6 +255,27 @@ error_t st7789_display_off(st7789_device_t *device)
 
     CALL_WITH_ERROR_RETURN(st7789_write_command, device, DISPOFF, NULL, 0);
     CALL_NULLABLE_WITH_ERROR(device_op->pwm_change_duty, 0);
+
+    return ALL_OK;
+}
+
+error_t st7789ex_set_lcd_brightness(st7789_device_t *device, uint32_t brightness)
+{
+    PARAM_NOT_NULL(device);
+
+    if (brightness > 10000)
+    {
+        print(WARN, "brightness (%d) is larger than 10000, this may cause unexpected behavior.\n", brightness);
+    }
+
+    st7789_device_op_t *device_op = &device->device_op;
+
+    if (device_op->pwm_change_duty == NULL)
+    {
+        print(WARN, "pwm_change_duty is NULL, adjust brightness will not work.\n");
+    }
+
+    CALL_NULLABLE_WITH_ERROR(device_op->pwm_change_duty, brightness);
 
     return ALL_OK;
 }
@@ -419,18 +376,6 @@ exit:
     return err;
 }
 
-static struct
-{
-    rgb565_t clear_color;
-    uint16_t lines_left;
-} st7789_gram_clear_config;
-
-typedef struct
-{
-    rgb565_t *buf;
-    uint16_t buf_size;
-} st7789_gram_clear_args_t;
-
 error_t st7789_clear_gram_set_buf(st7789_device_t *device, st7789_gram_clear_args_t *args)
 {
 
@@ -443,39 +388,9 @@ error_t st7789_clear_gram_set_buf(st7789_device_t *device, st7789_gram_clear_arg
     uint32_t npixels = device->resolution.x * lines_to_write;
 
     CALL_WITH_ERROR_RETURN(st7789_update_gram_set_buff, device,
-                    npixels, args->buf);
+                           npixels, args->buf);
 
     st7789_gram_clear_config.lines_left -= lines_to_write;
-
-    return ALL_OK;
-}
-
-/**
- * @brief set the buffer and start the transfer
- *
- * @param pargs
- * @return error_t
- */
-error_t st7789_clear_gram_cplt_handler(st7789_device_t *device, void *pargs)
-{
-    st7789_gram_clear_args_t *args = pargs;
-
-    PARAM_NOT_NULL(device);
-
-    if (st7789_gram_clear_config.lines_left > 0)
-    {
-        CALL_WITH_ERROR_RETURN(st7789_clear_gram_set_buf, device, args);
-
-        CALL_WITH_ERROR_RETURN(st7789_update_gram_stream_start, device,
-                        st7789_clear_gram_cplt_handler,
-                        pargs);
-    }
-    else
-    {
-        // release the buffer
-        free(args->buf);
-        free(args);
-    }
 
     return ALL_OK;
 }
@@ -502,7 +417,7 @@ error_t st7789_display_clear_gram_async(st7789_device_t *device, rgb565_t color)
 
     if (pbuf == NULL || args == NULL)
     {
-        print(LERROR, "malloc failed, can not allocate buffer for gram clear.\n");
+        print(ERROR, "malloc failed, can not allocate buffer for gram clear.\n");
         return E_MEMORY_ALLOC_FAILED;
     }
 
@@ -540,14 +455,16 @@ error_t st7789_update_gram_set_buff(
 
     switch (device->async_state)
     {
+    case ST7789_ASYNC_STATE_BUFFER_LOADED:
     case ST7789_ASYNC_STATE_IDLE:
         device->async_state = ST7789_ASYNC_STATE_BUFFER_LOADED;
         break;
+    case ST7789_ASYNC_STATE_BUFFER_RELOADED:
     case ST7789_ASYNC_STATE_TRANSFERING:
         device->async_state = ST7789_ASYNC_STATE_BUFFER_RELOADED;
         break;
     default:
-        print(LERROR, "The buffer can only be accessed when idle or transfering.\n");
+        print(ERROR, "The buffer can only be accessed when idle or transfering.\n");
         return E_INVALID_OPERATION;
     }
 
@@ -565,13 +482,13 @@ error_t st7789_update_gram_stream_start(
 
     if (device->async_state == ST7789_ASYNC_STATE_TRANSFERING)
     {
-        print(LERROR, "There is a transfering operation ongoing.\n");
+        print(ERROR, "There is a transfering operation ongoing.\n");
         return E_INVALID_OPERATION;
     }
 
     if (device->async_state != ST7789_ASYNC_STATE_BUFFER_LOADED && device->async_state != ST7789_ASYNC_STATE_BUFFER_RELOADED)
     {
-        print(LERROR, "There is no data in buffer, please call lock() and unlock() first.\n");
+        print(ERROR, "There is no data in buffer, please call lock() and unlock() first.\n");
         return E_INVALID_OPERATION;
     }
 
@@ -613,16 +530,16 @@ error_t st7789_update_gram_stream_start(
     if (device->device_op.bus_mode == ST7789_BUS_MODE_SPI)
     {
         CALL_WITH_CODE_GOTO(err, error_exit,
-                             device->device_op.spi.write_async_start,
-                             device->gram_tx_buf_size,
-                             device->gram_tx_buf);
+                            device->device_op.spi.write_async_start,
+                            device->gram_tx_buf_size,
+                            device->gram_tx_buf);
     }
     else if (device->device_op.bus_mode == ST7789_BUS_MODE_8080)
     {
         CALL_WITH_CODE_GOTO(err, error_exit,
-                             device->device_op.bus80.data_write_async_start,
-                             device->gram_tx_buf_size,
-                             device->gram_tx_buf);
+                            device->device_op.bus80.data_write_async_start,
+                            device->gram_tx_buf_size,
+                            device->gram_tx_buf);
     }
     else
     {
@@ -643,7 +560,7 @@ error_t st7789_async_completed_notify(st7789_device_t *device)
 
     if (device->async_state != ST7789_ASYNC_STATE_TRANSFERING)
     {
-        print(LERROR, "There is no transfering operation\n");
+        print(ERROR, "There is no transfering operation\n");
         return E_INVALID_OPERATION;
     }
 
@@ -706,3 +623,180 @@ error_t st7789_wait_async_complete(st7789_device_t *device, uint32_t timeout)
 
     return ALL_OK;
 }
+
+error_t st7789_read_gram(st7789_device_t *device, uint32_t npixel,
+                         rgb565_t *pbuf, bool _continue)
+{
+    PARAM_NOT_NULL(device);
+    PARAM_NOT_NULL(pbuf);
+
+    if (!_continue)
+    {
+        // setting pixel format: 16bit RGB 565
+        CALL_WITH_ERROR(st7789_write_command, device, COLMOD, "\x06", 1);
+        CALL_WITH_ERROR(st7789_write_command, device, RAMRD, NULL, 0);
+    }
+
+    error_t err = ALL_OK;
+    st7789_device_op_t device_op = device->device_op;
+
+    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_aquire);
+    uint32_t num_8bit_reads = npixel * 3;
+    uint32_t num_16bit_reads = num_8bit_reads / 2;
+    if (device_op.bus_mode == ST7789_BUS_MODE_8080)
+    {
+        if (device_op.host_is_big_endian == true)
+            CALL_WITH_ERROR_EXIT(err, exit, device_op.bus80.data_read, num_8bit_reads, pbuf);
+        else
+            for (int i = 0; i < num_16bit_reads; i++)
+            {
+                rgb565_t temp = 0;
+                CALL_WITH_ERROR_EXIT(err, exit, device_op.bus80.data_read, 2, &temp);
+                pbuf[i] = temp; // U16ECV(temp);
+            }
+    }
+    else // wtf?
+    {
+        return E_INVALID_ARGUMENT;
+    }
+
+exit:
+    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_release);
+    return err;
+}
+
+error_t st7789_read_gram_end(st7789_device_t *device)
+{
+    CALL_WITH_ERROR(st7789_write_command, device, COLMOD, "\x05", 1);
+    return ALL_OK;
+}
+
+/******************************************************************************/
+/*                     PRIVATE FUNCTION IMPLEMENTATIONS                       */
+/******************************************************************************/
+
+static error_t st7789_write_command(st7789_device_t *device, uint8_t command,
+                                    const void *pargs, uint32_t nargs)
+{
+    PARAM_NOT_NULL(device);
+    error_t err = ALL_OK;
+    st7789_device_op_t device_op = device->device_op;
+
+    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_aquire);
+
+    if (device_op.bus_mode == ST7789_BUS_MODE_SPI)
+    {
+
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 0);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 0);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.write, 1, &command);
+        if (nargs != 0)
+        {
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.write, nargs, pargs);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 1);
+        }
+        else
+        {
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 1);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
+        }
+    }
+    else if (device_op.bus_mode == ST7789_BUS_MODE_8080)
+    {
+        uint16_t data = command;
+        if (device_op.host_is_big_endian == false)
+            data = U16ECV(data);
+
+        CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.command_write, 2, &data);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write, nargs, pargs);
+    }
+    else // wtf?
+    {
+        err = E_INVALID_ARGUMENT;
+        goto exit;
+    }
+
+exit:
+    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_release);
+    return err;
+}
+
+static error_t st7789_write_pixel_data(st7789_device_t *device,
+                                       const rgb565_t *pdata, uint32_t ndata)
+{
+    PARAM_NOT_NULL(device);
+    error_t err = ALL_OK;
+    st7789_device_op_t device_op = device->device_op;
+
+    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_aquire);
+
+    if (device_op.bus_mode == ST7789_BUS_MODE_SPI)
+    {
+
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 0);
+
+        for (uint32_t i = 0; i < ndata; i++)
+        {
+            rgb565_t data = U16ECV(pdata[i]);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.spi.write, 2, &data);
+        }
+
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_dc_set, 1);
+        CALL_WITH_CODE_GOTO(err, exit, device_op.spi.gpio_cs_set, 1);
+    }
+    else if (device_op.bus_mode == ST7789_BUS_MODE_8080)
+    {
+        if (device_op.host_is_big_endian == true)
+            CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write, ndata * 2, pdata);
+
+        for (int i = 0; i < ndata; i++)
+        {
+            rgb565_t data = U16ECV(pdata[i]);
+            CALL_WITH_CODE_GOTO(err, exit, device_op.bus80.data_write, 2, &data);
+        }
+    }
+    else // wtf?
+    {
+        return E_INVALID_ARGUMENT;
+    }
+
+exit:
+    CALL_NULLABLE_WITH_ERROR(device->device_op.bus_release);
+    return err;
+}
+
+/**
+ * @brief set the buffer and start the transfer
+ *
+ * @param pargs
+ * @return error_t
+ */
+static error_t st7789_clear_gram_cplt_handler(st7789_device_t *device, void *pargs)
+{
+    st7789_gram_clear_args_t *args = pargs;
+
+    PARAM_NOT_NULL(device);
+
+    if (st7789_gram_clear_config.lines_left > 0)
+    {
+        CALL_WITH_ERROR_RETURN(st7789_clear_gram_set_buf, device, args);
+
+        CALL_WITH_ERROR_RETURN(st7789_update_gram_stream_start, device,
+                               st7789_clear_gram_cplt_handler,
+                               pargs);
+    }
+    else
+    {
+        // release the buffer
+        free(args->buf);
+        free(args);
+    }
+
+    return ALL_OK;
+}
+
+/******************************************************************************/
+/*                                 END OF FILE                                */
+/******************************************************************************/
