@@ -156,6 +156,8 @@ error_t cs123x_set_config(cs123x_device_t *dev, cs123x_config_t *cfg)
     dev->cfg = *cfg;
     dev->config_changed = true;
     dev->config_pushed = false;
+    
+    return ALL_OK;
 }
 
 error_t cs123x_enter_power_down(cs123x_device_t *dev)

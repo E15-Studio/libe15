@@ -81,17 +81,17 @@ typedef void (*callback_arg_t)(void *parg);
  * the function **must not** be null, but we don't check it.
  * if the function returns an error, the error will be logged and returned.
  */
-#define CALL_WITH_ERROR_RETURN(func, ...)                         \
-    do                                                     \
-    {                                                      \
-        error_t err = (func)(__VA_ARGS__);                 \
-        if (FAILED(err))                                   \
-        {                                                  \
+#define CALL_WITH_ERROR_RETURN(func, ...)              \
+    do                                                 \
+    {                                                  \
+        error_t err = (func)(__VA_ARGS__);             \
+        if (FAILED(err))                               \
+        {                                              \
             dev_err("'" #func "()' "                   \
-                        "failed with error code 0x%08X\n", \
-                        err);                              \
-            return err;                                    \
-        }                                                  \
+                    "failed with error code 0x%08X\n", \
+                    err);                              \
+            return err;                                \
+        }                                              \
     } while (0u)
 #endif // ! CALL_WITH_ERROR_RETURN
 
@@ -103,17 +103,17 @@ typedef void (*callback_arg_t)(void *parg);
  * and the error code will be set to the given symbol, then
  * goto the given label.
  */
-#define CALL_WITH_CODE_GOTO(hr, lab, func, ...)           \
-    do                                                     \
-    {                                                      \
-        hr = (func)(__VA_ARGS__);                          \
-        if (FAILED(hr))                                    \
-        {                                                  \
+#define CALL_WITH_CODE_GOTO(hr, lab, func, ...)        \
+    do                                                 \
+    {                                                  \
+        hr = (func)(__VA_ARGS__);                      \
+        if (FAILED(hr))                                \
+        {                                              \
             dev_err("'" #func "()' "                   \
-                        "failed with error code 0x%08X\n", \
-                        err);                              \
-            goto lab;                                      \
-        }                                                  \
+                    "failed with error code 0x%08X\n", \
+                    err);                              \
+            goto lab;                                  \
+        }                                              \
     } while (0u)
 #endif // ! CALL_WITH_CODE_GOTO
 
@@ -123,22 +123,22 @@ typedef void (*callback_arg_t)(void *parg);
  * the function can be null, in which case it will be ignored.
  * if the function returns an error, the error will be logged and returned.
  */
-#define CALL_NULLABLE_WITH_ERROR(func, ...)                    \
-    do                                                         \
-    {                                                          \
-        if ((func) == ((void *)0))                             \
-            break;                                             \
-        else                                                   \
-        {                                                      \
-            error_t err = (func)(__VA_ARGS__);                 \
-            if (FAILED(err))                                   \
-            {                                                  \
+#define CALL_NULLABLE_WITH_ERROR(func, ...)                \
+    do                                                     \
+    {                                                      \
+        if ((func) == ((void *)0))                         \
+            break;                                         \
+        else                                               \
+        {                                                  \
+            error_t err = (func)(__VA_ARGS__);             \
+            if (FAILED(err))                               \
+            {                                              \
                 dev_err("'" #func "()' "                   \
-                            "failed with error code 0x%08X\n", \
-                            err);                              \
-                return err;                                    \
-            }                                                  \
-        }                                                      \
+                        "failed with error code 0x%08X\n", \
+                        err);                              \
+                return err;                                \
+            }                                              \
+        }                                                  \
     } while (0u)
 #endif // ! CALL_NULLABLE_WITH_ERROR
 
@@ -148,60 +148,60 @@ typedef void (*callback_arg_t)(void *parg);
  * the function can be null, in which case it will be ignored.
  * if the function returns an error, the error will be logged and returned.
  */
-#define CALL_NULLABLE_WITH_ERROR_EXIT(hr, lab, func, ...)      \
-    do                                                         \
-    {                                                          \
-        if ((func) == ((void *)0))                             \
-            break;                                             \
-        else                                                   \
-        {                                                      \
-            hr = (func)(__VA_ARGS__);                          \
-            if (FAILED(err))                                   \
-            {                                                  \
+#define CALL_NULLABLE_WITH_ERROR_EXIT(hr, lab, func, ...)  \
+    do                                                     \
+    {                                                      \
+        if ((func) == ((void *)0))                         \
+            break;                                         \
+        else                                               \
+        {                                                  \
+            hr = (func)(__VA_ARGS__);                      \
+            if (FAILED(err))                               \
+            {                                              \
                 dev_err("'" #func "()' "                   \
-                            "failed with error code 0x%08X\n", \
-                            err);                              \
-                goto lab;                                      \
-            }                                                  \
-        }                                                      \
+                        "failed with error code 0x%08X\n", \
+                        err);                              \
+                goto lab;                                  \
+            }                                              \
+        }                                                  \
     } while (0u)
 #endif // ! CALL_NULLABLE_WITH_ERROR_EXIT
 
 #ifndef PARAM_CHECK
-#define PARAM_CHECK(param, condition)                                  \
-    do                                                                 \
-    {                                                                  \
-        if (!(param condition))                                        \
-        {                                                              \
+#define PARAM_CHECK(param, condition)                              \
+    do                                                             \
+    {                                                              \
+        if (!(param condition))                                    \
+        {                                                          \
             dev_err("'" #param "' "                                \
-                        "not meeting requirement '" #condition "'\n"); \
-            return E_INVALID_ARGUMENT;                                 \
-        }                                                              \
+                    "not meeting requirement '" #condition "'\n"); \
+            return E_INVALID_ARGUMENT;                             \
+        }                                                          \
     } while (0U)
 #endif // ! PARAM_CHECK
 
 #ifndef PARAM_CHECK_CODE
-#define PARAM_CHECK_CODE(param, condition, code)                       \
-    do                                                                 \
-    {                                                                  \
-        if (!(param condition))                                        \
-        {                                                              \
+#define PARAM_CHECK_CODE(param, condition, code)                   \
+    do                                                             \
+    {                                                              \
+        if (!(param condition))                                    \
+        {                                                          \
             dev_err("'" #param "' "                                \
-                        "not meeting requirement '" #condition "'\n"); \
-            return code;                                               \
-        }                                                              \
+                    "not meeting requirement '" #condition "'\n"); \
+            return code;                                           \
+        }                                                          \
     } while (0U)
 #endif // ! PARAM_CHECK_CODE
 
 #ifndef PARAM_NOT_NULL
-#define PARAM_NOT_NULL(param)                              \
-    do                                                     \
-    {                                                      \
-        if (param == NULL)                                 \
-        {                                                  \
+#define PARAM_NOT_NULL(param)                          \
+    do                                                 \
+    {                                                  \
+        if (param == NULL)                             \
+        {                                              \
             dev_err("'" #param "' cannot be NULL.\n"); \
-            return E_INVALID_ARGUMENT;                     \
-        }                                                  \
+            return E_INVALID_ARGUMENT;                 \
+        }                                              \
     } while (0U)
 
 #endif // ! PARAM_NOT_NULL
@@ -212,11 +212,14 @@ typedef void (*callback_arg_t)(void *parg);
  * if the value is 0x1234, the result will be 0x3412
  * @param value the value to convert
  */
-// #define U16ECV(value)                      \
-//     (((((uint16_t)value) & 0x00FF) << 8) | \
-//      ((((uint16_t)value) & 0xFF00) >> 8))
 
+#ifdef __REV16
 #define U16ECV(value) __REV16(value)
+#else
+#define U16ECV(value)                      \
+    (((((uint16_t)value) & 0x00FF) << 8) | \
+     ((((uint16_t)value) & 0xFF00) >> 8))
+#endif // ! __REV16
 #endif // ! U16ECV
 
 #ifndef U32ECV
